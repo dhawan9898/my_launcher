@@ -1,0 +1,702 @@
+face "dhawan-home" {
+  meta {
+    owl: 23
+    description: "Vantablack OLED Main Home Dashboard"
+    version: "1.0"
+    license: "MIT"
+    category: "productivity"
+  }
+
+  page: 0
+  statusBar: false
+
+  // --- Real-time Device & Environment Sources ---
+  source now = clock every 1m
+  source sys = android.system every 5s
+  source bat = android.battery
+  source alarm = android.alarm
+  source modes = android.modes
+  source vol = android.volume
+  source wx = http("https://wttr.in/Bengaluru?format=j1") every 30m timeout 10s json
+  source notifs = android.notifications
+
+  // --- Vantablack High-Contrast Monochrome Design Tokens ---
+  let c_bg = "#000000"
+  let c_card = "#121214"
+  let c_border = "#262629"
+  let c_pill_off = "#1C1C1E"
+  let c_pill_on = "#FFFFFF"
+  let c_text_pri = "#FFFFFF"
+  let c_text_sec = "#8E8E93"
+
+  // --- Dynamic Greeting & Time Computations ---
+  let hr = num(fmtTime(now, "H"))
+  let greet = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : hr < 21 ? "Good evening" : "Good night"
+  let upSec = sys.uptime ?? 3600
+  let upHours = floor(upSec / 3600)
+  let upMins = floor((upSec % 3600) / 60)
+  let uptimeStr = "${upHours}h ${upMins}m"
+
+  // Weather extraction
+  let cur = wx.current_condition[0]
+  let day = wx.weather[0]
+  let place = wx.nearest_area[0].areaName[0].value ?? "Bengaluru"
+  let tempC = cur ? cur.temp_C : "26"
+  let condText = cur ? cur.weatherDesc[0].value : "Sunny"
+  let tempMax = day ? day.maxtempC : "30"
+  let tempMin = day ? day.mintempC : "20"
+
+  // Calendar week calculations (7 days: Monday to Sunday)
+  let dayOfWeek = num(fmtTime(now, "u")) - 1
+  let weekLabels = ["M", "T", "W", "T", "F", "S", "S"]
+
+  // Telemetry ratios
+  let batLevel = bat.level ?? 85
+  let memTotal = sys.memory.total ?? 1
+  let memUsed = sys.memory.used ?? 0
+  let memRatio = memTotal > 0 ? (memUsed / memTotal) : 0.45
+  let memPct = round(memRatio * 100)
+
+  let storTotal = sys.storage.total ?? 1
+  let storFree = sys.storage.free ?? 0
+  let storUsed = storTotal - storFree
+  let storRatio = storTotal > 0 ? (storUsed / storTotal) : 0.60
+  let storPct = round(storRatio * 100)
+
+  // Customizable Quick Toggles Configuration
+  state cfg_customizing = false
+
+  background: c_bg
+  padding: [16, 20, 16, 20]
+
+  Column {
+    gap: 14
+    fill: width
+    scroll: true
+
+    // ==========================================
+    // 1. TOP GREETING HEADER
+    // ==========================================
+    Row {
+      fill: width
+      align: center
+      gap: 12
+
+      // Circular "D" avatar badge
+      Box {
+        size: 42
+        radius: 21
+        background: c_card
+        border: 1
+        borderColor: c_border
+        align: center
+        Text {
+          text: "D"
+          fontSize: 18
+          bold: true
+          color: c_text_pri
+        }
+      }
+
+      // Greeting and dynamic uptime subtitle
+      Column {
+        weight: 1
+        gap: 2
+        Text {
+          text: greet
+          fontSize: 16
+          bold: true
+          color: c_text_pri
+        }
+        Text {
+          text: "Dhawan • up ${uptimeStr}"
+          fontSize: 12
+          color: c_text_sec
+        }
+      }
+
+      // Settings gear action button
+      Box {
+        size: 42
+        radius: 21
+        background: c_card
+        border: 1
+        borderColor: c_border
+        align: center
+        onTap: launcher("settings")
+        Text {
+          text: "⚙"
+          fontSize: 18
+          color: c_text_pri
+        }
+      }
+    }
+
+    // ==========================================
+    // 2. CLOCK, WEATHER & WEEK STRIP CARD
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 18
+      gap: 14
+
+      // Top Row: Big Digital Clock & Live Weather Readout
+      Row {
+        fill: width
+        align: center
+
+        // Clock Block -> Tapping opens Clock/Alarm app
+        Column {
+          weight: 1
+          gap: 2
+          onTap: androidApp(alarm.app ?? "com.sec.android.app.clockpackage")
+          Text {
+            spans: [
+              fmtTime(now, "HH"),
+              { text: ":", color: c_text_sec },
+              fmtTime(now, "mm")
+            ]
+            fontSize: 48
+            bold: true
+            letterSpacing: -2
+            color: c_text_pri
+          }
+          Text {
+            text: fmtTime(now, "EEEE, d MMMM")
+            fontSize: 13
+            color: c_text_sec
+          }
+        }
+
+        // Weather Block -> Tapping opens Weather
+        Column {
+          align: end
+          gap: 2
+          onTap: androidApp("com.sec.android.daemonapp")
+          Text {
+            text: "${tempC}°"
+            fontSize: 34
+            bold: true
+            color: c_text_pri
+          }
+          Text {
+            text: condText
+            fontSize: 12
+            bold: true
+            color: c_text_sec
+          }
+          Text {
+            text: "↑${tempMax}° ↓${tempMin}°"
+            fontSize: 11
+            color: c_text_sec
+          }
+        }
+      }
+
+      // 7-Day Horizontal Calendar Strip (Highlights today in solid white pill)
+      Row {
+        fill: width
+        align: center
+        justify: spaceBetween
+        onTap: calendar("open")
+        for i in range(7) {
+          let isToday = i == dayOfWeek
+          let dayDate = fmtTime(now + (i - dayOfWeek) * 86400, "d")
+          Column {
+            align: center
+            gap: 4
+            padding: [10, 8]
+            radius: 12
+            background: isToday ? c_pill_on : c_pill_off
+            border: isToday ? 0 : 1
+            borderColor: c_border
+            Text {
+              text: weekLabels[i]
+              fontSize: 11
+              bold: true
+              color: isToday ? "#000000" : c_text_sec
+            }
+            Text {
+              text: dayDate
+              fontSize: 13
+              bold: isToday
+              color: isToday ? "#000000" : c_text_pri
+            }
+          }
+        }
+      }
+
+      // Bottom Status Pills: Location/Condition & Genuine Next Alarm
+      Row {
+        fill: width
+        gap: 8
+
+        // Location & Condition Pill
+        Box {
+          weight: 1
+          padding: [12, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: androidApp("com.sec.android.daemonapp")
+          Row {
+            align: center
+            gap: 6
+            Text { text: "📍"; fontSize: 11 }
+            Text {
+              text: "${condText} • ${place}"
+              fontSize: 11
+              bold: true
+              maxLines: 1
+              color: c_text_pri
+            }
+          }
+        }
+
+        // Alarm Pill (Reads genuine Android system next-alarm broadcast/API)
+        Box {
+          weight: 1
+          padding: [12, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: androidApp(alarm.app ?? "com.sec.android.app.clockpackage")
+          Row {
+            align: center
+            gap: 6
+            Text { text: "⏰"; fontSize: 11 }
+            Text {
+              text: alarm.set ? fmtTime(alarm.time, "EEE HH:mm") : "No alarm set"
+              fontSize: 11
+              bold: true
+              maxLines: 1
+              color: alarm.set ? c_text_pri : c_text_sec
+            }
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // 3. 2x3 QUICK TOGGLES & MEDIA SLIDER CARD
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      // Header with subtle edit/customize trigger
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "QUICK CONTROLS"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: cfg_customizing ? "DONE" : "CUSTOMIZE"
+          style: label
+          fontSize: 11
+          bold: true
+          color: c_text_pri
+          onTap: cfg_customizing = !cfg_customizing
+        }
+      }
+
+      // 2x3 Grid of Interactive Monochrome Pill Toggles
+      // Row 1: Flashlight, Media Volume, Do Not Disturb
+      Row {
+        fill: width
+        gap: 8
+
+        // 1. Flashlight
+        let torchOn = modes.torch == true
+        Box {
+          weight: 1
+          padding: [10, 10]
+          radius: 12
+          background: torchOn ? c_pill_on : c_pill_off
+          border: torchOn ? 0 : 1
+          borderColor: c_border
+          onTap: torch("toggle")
+          Column {
+            align: center
+            gap: 2
+            Text { text: "🔦"; fontSize: 14 }
+            Text {
+              text: torchOn ? "Torch On" : "Torch"
+              fontSize: 11
+              bold: true
+              color: torchOn ? "#000000" : c_text_pri
+            }
+          }
+        }
+
+        // 2. Media Volume Toggle / Mute
+        let volActive = !vol.muted && (vol.level ?? 0) > 0
+        Box {
+          weight: 1
+          padding: [10, 10]
+          radius: 12
+          background: volActive ? c_pill_on : c_pill_off
+          border: volActive ? 0 : 1
+          borderColor: c_border
+          onTap: volume("toggle")
+          Column {
+            align: center
+            gap: 2
+            Text { text: volActive ? "🔊" : "🔇"; fontSize: 14 }
+            Text {
+              text: vol.muted ? "Muted" : "${vol.level ?? 0}%"
+              fontSize: 11
+              bold: true
+              color: volActive ? "#000000" : c_text_pri
+            }
+          }
+        }
+
+        // 3. Do Not Disturb
+        let dndOn = modes.dnd == true
+        Box {
+          weight: 1
+          padding: [10, 10]
+          radius: 12
+          background: dndOn ? c_pill_on : c_pill_off
+          border: dndOn ? 0 : 1
+          borderColor: c_border
+          onTap: dnd("toggle")
+          Column {
+            align: center
+            gap: 2
+            Text { text: "🌙"; fontSize: 14 }
+            Text {
+              text: dndOn ? "DND On" : "DND"
+              fontSize: 11
+              bold: true
+              color: dndOn ? "#000000" : c_text_pri
+            }
+          }
+        }
+      }
+
+      // Row 2: Wi-Fi, Terminal Monitor, Bluetooth
+      Row {
+        fill: width
+        gap: 8
+
+        // 4. Wi-Fi / Hotspot
+        let wifiOn = modes.wifi == true
+        Box {
+          weight: 1
+          padding: [10, 10]
+          radius: 12
+          background: wifiOn ? c_pill_on : c_pill_off
+          border: wifiOn ? 0 : 1
+          borderColor: c_border
+          onTap: settings("wifi")
+          Column {
+            align: center
+            gap: 2
+            Text { text: "📶"; fontSize: 14 }
+            Text {
+              text: wifiOn ? "Wi-Fi On" : "Wi-Fi"
+              fontSize: 11
+              bold: true
+              color: wifiOn ? "#000000" : c_text_pri
+            }
+          }
+        }
+
+        // 5. Monitor / Terminal (`btop`)
+        Box {
+          weight: 1
+          padding: [10, 10]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: terminal("btop")
+          Column {
+            align: center
+            gap: 2
+            Text { text: "💻"; fontSize: 14 }
+            Text {
+              text: "btop"
+              fontSize: 11
+              bold: true
+              color: c_text_pri
+            }
+          }
+        }
+
+        // 6. Bluetooth
+        let btOn = modes.bluetooth == true
+        Box {
+          weight: 1
+          padding: [10, 10]
+          radius: 12
+          background: btOn ? c_pill_on : c_pill_off
+          border: btOn ? 0 : 1
+          borderColor: c_border
+          onTap: settings("bluetooth")
+          Column {
+            align: center
+            gap: 2
+            Text { text: "ᛒ"; fontSize: 14 }
+            Text {
+              text: btOn ? "BT On" : "Bluetooth"
+              fontSize: 11
+              bold: true
+              color: btOn ? "#000000" : c_text_pri
+            }
+          }
+        }
+      }
+
+      // Full-Width Media Volume Slider Bar
+      Column {
+        fill: width
+        gap: 4
+        Row {
+          fill: width
+          align: center
+          Text { text: "VOLUME LEVEL"; fontSize: 10; color: c_text_sec; weight: 1 }
+          Text { text: "${vol.level ?? 0}%"; fontSize: 11; bold: true; color: c_text_pri }
+        }
+        Slider {
+          value: vol.level ?? 0
+          min: 0
+          max: 100
+          live: true
+          fill: width
+          color: c_text_pri
+          track: "#2C2C2E"
+          onChange: volume(value)
+        }
+      }
+    }
+
+    // ==========================================
+    // 4. CIRCULAR TELEMETRY RINGS CARD
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Text {
+        text: "DEVICE TELEMETRY"
+        style: label
+        fontSize: 11
+        color: c_text_sec
+      }
+
+      Row {
+        fill: width
+        align: center
+        justify: spaceEvenly
+
+        // Battery Ring
+        Column {
+          align: center
+          gap: 6
+          Box {
+            align: center
+            Ring {
+              value: batLevel / 100
+              size: 68
+              thickness: 6
+              color: c_text_pri
+              track: c_pill_off
+            }
+            Text {
+              text: "${batLevel}%"
+              fontSize: 14
+              bold: true
+              color: c_text_pri
+            }
+          }
+          Text {
+            text: bat.charging ? "CHARGING" : "BATTERY"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
+        }
+
+        // Memory (RAM) Ring
+        Column {
+          align: center
+          gap: 6
+          Box {
+            align: center
+            Ring {
+              value: memRatio
+              size: 68
+              thickness: 6
+              color: c_text_pri
+              track: c_pill_off
+            }
+            Text {
+              text: "${memPct}%"
+              fontSize: 14
+              bold: true
+              color: c_text_pri
+            }
+          }
+          Text {
+            text: "RAM"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
+        }
+
+        // Storage Ring
+        Column {
+          align: center
+          gap: 6
+          Box {
+            align: center
+            Ring {
+              value: storRatio
+              size: 68
+              thickness: 6
+              color: c_text_pri
+              track: c_pill_off
+            }
+            Text {
+              text: "${storPct}%"
+              fontSize: 14
+              bold: true
+              color: c_text_pri
+            }
+          }
+          Text {
+            text: "STORAGE"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // 5. COMPACT NOTIFICATIONS FEED CARD
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      // Header: Bell Icon, Title, Unread Count Pill
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "🔔  NOTIFICATIONS"
+          style: label
+          fontSize: 11
+          color: c_text_pri
+          weight: 1
+        }
+        Box {
+          padding: [8, 4]
+          radius: 10
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          Text {
+            text: "${len(notifs.items ?? [])} unread"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
+          }
+        }
+      }
+
+      // Stacked Notification Rows
+      let notifList = (notifs.items ?? []).take(3)
+      if len(notifList) == 0 {
+        Text {
+          text: "All caught up • No notifications"
+          fontSize: 12
+          color: c_text_sec
+          padding: [0, 4]
+        }
+      } else {
+        Column {
+          fill: width
+          gap: 10
+          for nItem in notifList key nItem.key {
+            Row {
+              fill: width
+              align: center
+              gap: 10
+              padding: [6, 4]
+              onTap: notification("open", nItem.key)
+
+              // App Icon / Glyph
+              Image {
+                src: nItem.icon
+                size: 32
+                radius: 8
+              }
+
+              // Text preview
+              Column {
+                weight: 1
+                gap: 2
+                Text {
+                  text: nItem.title ?? "Alert"
+                  fontSize: 13
+                  bold: true
+                  maxLines: 1
+                  color: c_text_pri
+                }
+                Text {
+                  text: nItem.text ?? ""
+                  fontSize: 11
+                  maxLines: 1
+                  color: c_text_sec
+                }
+              }
+
+              // Relative timestamp
+              Text {
+                text: fmtAgo(nItem.time, now)
+                fontSize: 10
+                color: c_text_sec
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Bottom Navigation Bar Spacing
+    Spacer { height: screenInset + 12 }
+  }
+}

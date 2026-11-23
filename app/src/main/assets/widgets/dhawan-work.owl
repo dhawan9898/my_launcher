@@ -1,0 +1,835 @@
+face "dhawan-work" {
+  meta {
+    owl: 23
+    description: "Vantablack OLED Full-Screen Productivity & Dev Workspace"
+    version: "1.0"
+    license: "MIT"
+    category: "productivity"
+  }
+
+  page: -2
+  statusBar: false
+
+  // --- Real-time Sources ---
+  source now = clock every 1m
+  source net = android.network every 5s
+  source sys = android.system every 5s
+  source todoFile = file("~/todo.md") optional
+  source netStatus = cmd("echo -n $(ip -brief address show | awk '/UP/ {print $1 \": \" $3; exit}') • $(pgrep -x sshd >/dev/null && echo 'SSH:22 UP' || echo 'SSH: IDLE')") every 5s status optional
+
+  // --- Vantablack High-Contrast Monochrome Design Tokens ---
+  let c_bg = "#000000"
+  let c_card = "#121214"
+  let c_border = "#262629"
+  let c_pill_off = "#1C1C1E"
+  let c_pill_on = "#FFFFFF"
+  let c_text_pri = "#FFFFFF"
+  let c_text_sec = "#8E8E93"
+
+  // --- Process Todo File ---
+  let defaultTodo = "- [ ] Build and verify liquidlauncher\n- [ ] Configure agy autonomous agent\n- [ ] Set up SSH tunnels & tmux workspace\n- [x] Integrate Vantablack OLED theme"
+  let rawTodo = (todoFile != null && todoFile != "") ? todoFile : defaultTodo
+  let todoItems = lines(rawTodo)
+
+  // Net readout
+  let liveNet = (netStatus != null && netStatus.ok && netStatus.out != "") ? netStatus.out : "wlan0 • SSH: IDLE"
+
+  background: c_bg
+  padding: [16, 20, 16, 20]
+
+  Column {
+    gap: 14
+    fill: width
+    scroll: true
+
+    // Top Header: Navigation & Status
+    Row {
+      fill: width
+      align: center
+      Text {
+        text: "DEV & PRODUCTIVITY WORKSPACE"
+        style: label
+        fontSize: 12
+        bold: true
+        color: c_text_sec
+        weight: 1
+      }
+      Row {
+        gap: 6
+        align: center
+        padding: [8, 4]
+        radius: 12
+        background: c_pill_off
+        border: 1
+        borderColor: c_border
+        onTap: {
+          haptic("light")
+          launcher("page:0")
+        }
+        Text {
+          text: "HOME"
+          style: label
+          fontSize: 11
+          bold: true
+          color: c_text_pri
+        }
+        Text {
+          text: "→"
+          fontSize: 11
+          color: c_text_sec
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 1: QUICK UPI & PAYMENTS BAR
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 14
+      padding: 14
+      gap: 10
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "QUICK UPI PAYMENTS"
+          style: label
+          fontSize: 11
+          bold: true
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "INSTANT PAY"
+          style: label
+          fontSize: 10
+          bold: true
+          color: c_text_pri
+        }
+      }
+
+      // Hero Prominent Scan QR Action Button
+      Row {
+        fill: width
+        align: center
+        justify: center
+        gap: 10
+        padding: [14, 12]
+        radius: 10
+        background: c_pill_on
+        onTap: {
+          haptic("medium")
+          url("upi://pay")
+        }
+
+        Text {
+          text: "[ ⛶ ]"
+          fontSize: 18
+          bold: true
+          color: "#000000"
+        }
+        Column {
+          gap: 2
+          Text {
+            text: "SCAN ANY UPI QR CODE"
+            fontSize: 14
+            bold: true
+            color: "#000000"
+          }
+          Text {
+            text: "Direct camera scan • GPay / PhonePe / Paytm / BHIM"
+            fontSize: 10
+            color: "#444444"
+          }
+        }
+      }
+
+      // 3 High-Speed UPI App Launchers
+      Row {
+        fill: width
+        gap: 8
+
+        // Google Pay
+        Row {
+          weight: 1
+          align: center
+          justify: center
+          gap: 6
+          padding: [8, 10]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.google.android.apps.nbu.paisa.user")
+          }
+          Text {
+            text: "GPay"
+            fontSize: 13
+            bold: true
+            color: c_text_pri
+          }
+        }
+
+        // PhonePe
+        Row {
+          weight: 1
+          align: center
+          justify: center
+          gap: 6
+          padding: [8, 10]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.phonepe.app")
+          }
+          Text {
+            text: "PhonePe"
+            fontSize: 13
+            bold: true
+            color: c_text_pri
+          }
+        }
+
+        // Paytm / Wallet Shortcut
+        Row {
+          weight: 1
+          align: center
+          justify: center
+          gap: 6
+          padding: [8, 10]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("net.one97.paytm")
+          }
+          Text {
+            text: "Paytm"
+            fontSize: 13
+            bold: true
+            color: c_text_pri
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 2: AI & CODING TOOLS BENTO GRID
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 14
+      padding: 14
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "AI & DEV WORKFLOWS"
+          style: label
+          fontSize: 11
+          bold: true
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "ROOTLESS ARCH"
+          style: label
+          fontSize: 10
+          bold: true
+          color: c_text_pri
+        }
+      }
+
+      // 2x2 Bento Grid for AI & Dev Tools
+      Row {
+        fill: width
+        gap: 10
+
+        // Claude AI
+        Column {
+          weight: 1
+          gap: 6
+          padding: 12
+          radius: 10
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.anthropic.claude")
+          }
+          Row {
+            fill: width
+            align: center
+            Text {
+              text: "Claude"
+              fontSize: 15
+              bold: true
+              color: c_text_pri
+              weight: 1
+            }
+            Text {
+              text: "AI"
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+            }
+          }
+          Text {
+            text: "Anthropic Assistant"
+            fontSize: 11
+            color: c_text_sec
+          }
+        }
+
+        // Gemini AI
+        Column {
+          weight: 1
+          gap: 6
+          padding: 12
+          radius: 10
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.google.android.apps.bard")
+          }
+          Row {
+            fill: width
+            align: center
+            Text {
+              text: "Gemini"
+              fontSize: 15
+              bold: true
+              color: c_text_pri
+              weight: 1
+            }
+            Text {
+              text: "AI"
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+            }
+          }
+          Text {
+            text: "Google DeepMind"
+            fontSize: 11
+            color: c_text_sec
+          }
+        }
+      }
+
+      Row {
+        fill: width
+        gap: 10
+
+        // Terminal (foot)
+        Column {
+          weight: 1
+          gap: 6
+          padding: 12
+          radius: 10
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            terminal("foot || bash", "Arch Terminal")
+          }
+          Row {
+            fill: width
+            align: center
+            Text {
+              text: "Terminal"
+              fontSize: 15
+              bold: true
+              color: c_text_pri
+              weight: 1
+            }
+            Text {
+              text: "CLI"
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+            }
+          }
+          Text {
+            text: "foot / zsh shell"
+            fontSize: 11
+            color: c_text_sec
+          }
+        }
+
+        // GitHub
+        Column {
+          weight: 1
+          gap: 6
+          padding: 12
+          radius: 10
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.github.android")
+          }
+          Row {
+            fill: width
+            align: center
+            Text {
+              text: "GitHub"
+              fontSize: 15
+              bold: true
+              color: c_text_pri
+              weight: 1
+            }
+            Text {
+              text: "GIT"
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+            }
+          }
+          Text {
+            text: "Repos, PRs & Issues"
+            fontSize: 11
+            color: c_text_sec
+          }
+        }
+      }
+
+      // Live Quick-Status Line for Local Network / SSH
+      Row {
+        fill: width
+        align: center
+        gap: 8
+        padding: [10, 8]
+        radius: 8
+        background: c_bg
+        border: 1
+        borderColor: c_border
+        onTap: {
+          haptic("light")
+          terminal("ip -brief address show && echo '--- SSH Status ---' && (pgrep -a sshd || echo 'sshd not running') && echo '---' && btop || htop", "Network & SSH")
+        }
+
+        Text {
+          text: ">_"
+          fontSize: 12
+          bold: true
+          color: c_text_pri
+        }
+        Text {
+          text: liveNet
+          fontSize: 11
+          color: c_text_pri
+          weight: 1
+          maxLines: 1
+        }
+        Text {
+          text: "MONITOR"
+          fontSize: 9
+          bold: true
+          color: c_text_sec
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 3: WORK & DEVELOPER SHORTCUTS
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 14
+      padding: 14
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "WORK & SYSTEM SHORTCUTS"
+          style: label
+          fontSize: 11
+          bold: true
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "PRODUCTIVITY"
+          style: label
+          fontSize: 10
+          bold: true
+          color: c_text_pri
+        }
+      }
+
+      // 4 Fast-launch shortcuts in a 2x2 layout
+      Row {
+        fill: width
+        gap: 10
+
+        // Mail (Gmail)
+        Row {
+          weight: 1
+          align: center
+          gap: 10
+          padding: [10, 10]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.google.android.gm")
+          }
+          Text {
+            text: "✉"
+            fontSize: 16
+            color: c_text_pri
+          }
+          Column {
+            Text {
+              text: "Gmail"
+              fontSize: 13
+              bold: true
+              color: c_text_pri
+            }
+            Text {
+              text: "Work Mail"
+              fontSize: 10
+              color: c_text_sec
+            }
+          }
+        }
+
+        // Calendar
+        Row {
+          weight: 1
+          align: center
+          gap: 10
+          padding: [10, 10]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            calendar("open")
+          }
+          Text {
+            text: "📅"
+            fontSize: 16
+            color: c_text_pri
+          }
+          Column {
+            Text {
+              text: "Calendar"
+              fontSize: 13
+              bold: true
+              color: c_text_pri
+            }
+            Text {
+              text: "Schedule"
+              fontSize: 10
+              color: c_text_sec
+            }
+          }
+        }
+      }
+
+      Row {
+        fill: width
+        gap: 10
+
+        // Docs / Notes (Keep)
+        Row {
+          weight: 1
+          align: center
+          gap: 10
+          padding: [10, 10]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.google.android.keep")
+          }
+          Text {
+            text: "📝"
+            fontSize: 16
+            color: c_text_pri
+          }
+          Column {
+            Text {
+              text: "Notes"
+              fontSize: 13
+              bold: true
+              color: c_text_pri
+            }
+            Text {
+              text: "Docs & Keep"
+              fontSize: 10
+              color: c_text_sec
+            }
+          }
+        }
+
+        // Browser (Chrome)
+        Row {
+          weight: 1
+          align: center
+          gap: 10
+          padding: [10, 10]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            androidApp("com.android.chrome")
+          }
+          Text {
+            text: "🌐"
+            fontSize: 16
+            color: c_text_pri
+          }
+          Column {
+            Text {
+              text: "Chrome"
+              fontSize: 13
+              bold: true
+              color: c_text_pri
+            }
+            Text {
+              text: "Web Browser"
+              fontSize: 10
+              color: c_text_sec
+            }
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 4: INTERACTIVE TODO & SCRATCHPAD (~/todo.md)
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 14
+      padding: 14
+      gap: 12
+
+      // Header Row
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "CHECKLIST & SCRATCHPAD"
+          style: label
+          fontSize: 11
+          bold: true
+          color: c_text_sec
+          weight: 1
+        }
+        Row {
+          gap: 4
+          align: center
+          padding: [6, 2]
+          radius: 6
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            terminal("micro ~/todo.md || nano ~/todo.md || vi ~/todo.md", "todo.md")
+          }
+          Text {
+            text: "~/todo.md"
+            fontSize: 10
+            color: c_text_sec
+          }
+          Text {
+            text: "✎"
+            fontSize: 10
+            color: c_text_sec
+          }
+        }
+      }
+
+      // Inline Quick Add Task Row
+      Row {
+        fill: width
+        align: center
+        gap: 8
+        padding: [8, 8]
+        radius: 8
+        background: c_pill_off
+        border: 1
+        borderColor: c_border
+
+        Input {
+          weight: 1
+          placeholder: "Add task to ~/todo.md..."
+          underline: false
+          clear: true
+          color: c_text_pri
+          fontSize: 13
+          onSubmit: {
+            if value != "" {
+              haptic("light")
+              let newTaskLine = "- [ ] " + value
+              run("echo ${sh(newTaskLine)} >> ~/todo.md")
+            }
+          }
+        }
+
+        Box {
+          size: 28
+          radius: 6
+          background: c_pill_on
+          align: center
+          onTap: {
+            haptic("medium")
+            terminal("micro ~/todo.md || nano ~/todo.md || vi ~/todo.md", "todo.md")
+          }
+          Text {
+            text: "+"
+            fontSize: 16
+            bold: true
+            color: "#000000"
+          }
+        }
+      }
+
+      // Render Checklist Rows from ~/todo.md
+      Column {
+        fill: width
+        gap: 8
+
+        for item, i in todoItems {
+          let isDone = startsWith(item, "- [x]")
+          let isTodo = startsWith(item, "- [ ]")
+          let taskText = isDone ? replace(item, "- [x] ", "") : isTodo ? replace(item, "- [ ] ", "") : item
+
+          Row {
+            fill: width
+            align: center
+            gap: 10
+            padding: [8, 8]
+            radius: 8
+            background: isDone ? c_bg : c_pill_off
+            border: 1
+            borderColor: c_border
+            onTap: {
+              haptic("light")
+              if isDone {
+                let sedUncheck = "s/^- \\[x\\] " + taskText + "$/- [ ] " + taskText + "/"
+                run("touch ~/todo.md && sed -i ${sh(sedUncheck)} ~/todo.md")
+              } else if isTodo {
+                let sedCheck = "s/^- \\[ \\] " + taskText + "$/- [x] " + taskText + "/"
+                run("touch ~/todo.md && sed -i ${sh(sedCheck)} ~/todo.md")
+              }
+            }
+
+            // Checkbox indicator
+            Box {
+              size: 20
+              radius: 4
+              border: 1
+              borderColor: isDone ? c_pill_on : c_border
+              background: isDone ? c_pill_on : c_bg
+              align: center
+
+              if isDone {
+                Text {
+                  text: "✓"
+                  fontSize: 12
+                  bold: true
+                  color: "#000000"
+                }
+              }
+            }
+
+            // Task text
+            Text {
+              text: taskText
+              fontSize: 13
+              bold: !isDone
+              color: isDone ? c_text_sec : c_text_pri
+              weight: 1
+              maxLines: 2
+            }
+
+            if isDone {
+              Text {
+                text: "DONE"
+                fontSize: 9
+                bold: true
+                color: c_text_sec
+              }
+            }
+          }
+        }
+      }
+
+      // Quick Scratchpad Footer Actions
+      Row {
+        fill: width
+        justify: spaceBetween
+        align: center
+
+        Text {
+          text: "Clear completed"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+          onTap: {
+            haptic("medium")
+            run("touch ~/todo.md && sed -i '/^- \\[x\\]/d' ~/todo.md")
+          }
+        }
+
+        Text {
+          text: "Open full scratchpad →"
+          style: label
+          fontSize: 10
+          color: c_text_pri
+          bold: true
+          onTap: {
+            haptic("light")
+            terminal("micro ~/todo.md || nano ~/todo.md || vi ~/todo.md", "todo.md")
+          }
+        }
+      }
+    }
+
+    // Dynamic inset spacer for Android navigation bar
+    Spacer { height: screenInset + 20 }
+  }
+}

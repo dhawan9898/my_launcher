@@ -1,0 +1,530 @@
+face "dhawan-media" {
+  meta {
+    owl: 23
+    description: "Vantablack OLED Full-Screen Media Hub"
+    version: "1.0"
+    license: "MIT"
+    category: "media"
+  }
+
+  page: -1
+  statusBar: false
+
+  // --- Real-time Android Media & Audio Sources ---
+  source m = android.media
+  source vol = android.volume
+  source now = clock every 1s
+
+  // --- Vantablack High-Contrast Monochrome Design Tokens ---
+  let c_bg = "#000000"
+  let c_card = "#121214"
+  let c_border = "#262629"
+  let c_pill_off = "#1C1C1E"
+  let c_pill_on = "#FFFFFF"
+  let c_text_pri = "#FFFFFF"
+  let c_text_sec = "#8E8E93"
+
+  // Playback state extraction
+  let isPlaying = m != null && m.playing == true
+  let hasTrack = m != null && m.title != null && m.title != ""
+  let trackTitle = hasTrack ? m.title : "No Media Playing"
+  let trackArtist = (m != null && m.artist != null && m.artist != "") ? m.artist : "Select audio from a player below"
+  let sourceApp = (m != null && m.app != null && m.app != "") ? m.app : "MEDIA HUB"
+  let pos = m != null ? (m.position ?? 0) : 0
+  let dur = m != null ? (m.duration ?? 0) : 100
+  let safeDur = dur > 0 ? dur : 100
+  let remaining = safeDur > pos ? (safeDur - pos) : 0
+
+  // Audio output device
+  let outName = (vol != null && vol.output != null && vol.output.name != null && vol.output.name != "") ? vol.output.name : "Phone Speaker"
+  let volPct = vol != null ? (vol.level ?? 0) : 50
+
+  background: c_bg
+  padding: [16, 20, 16, 20]
+
+  Column {
+    gap: 14
+    fill: width
+    scroll: true
+
+    // Top Header: Navigation & Status
+    Row {
+      fill: width
+      align: center
+      Text {
+        text: "MEDIA & SOUND HUB"
+        style: label
+        fontSize: 12
+        bold: true
+        color: c_text_sec
+        weight: 1
+      }
+      Box {
+        padding: [10, 5]
+        radius: 12
+        background: c_card
+        border: 1
+        borderColor: c_border
+        onTap: launcher("page:0")
+        Text {
+          text: "HOME ›"
+          fontSize: 11
+          bold: true
+          color: c_text_pri
+        }
+      }
+    }
+
+    // ==========================================
+    // 1. HERO NOW-PLAYING CARD (Top of screen)
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 24
+      padding: 18
+      gap: 16
+
+      // Album Artwork / Audio Visualizer Frame
+      Box {
+        fill: width
+        height: 240
+        radius: 20
+        background: "#08080A"
+        border: 1
+        borderColor: c_border
+        align: center
+        clip: true
+
+        if m != null && m.art != null {
+          Image {
+            src: m.art
+            fill: true
+            fit: cover
+            radius: 20
+          }
+        } else {
+          // Monochrome Stylized Audio Canvas Frame
+          Column {
+            align: center
+            gap: 10
+            Text {
+              text: isPlaying ? "🎵" : "🎧"
+              fontSize: 48
+            }
+            Text {
+              text: isPlaying ? "PLAYING AUDIO" : "AUDIO READY"
+              style: label
+              fontSize: 11
+              bold: true
+              letterSpacing: 2
+              color: c_text_sec
+            }
+          }
+        }
+      }
+
+      // Track Metadata & Source App Badge
+      Column {
+        fill: width
+        gap: 4
+        Row {
+          fill: width
+          align: center
+          Text {
+            text: trackTitle
+            fontSize: 20
+            bold: true
+            color: c_text_pri
+            weight: 1
+            maxLines: 1
+          }
+          Box {
+            padding: [8, 4]
+            radius: 8
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            Text {
+              text: sourceApp
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+            }
+          }
+        }
+        Text {
+          text: trackArtist
+          fontSize: 14
+          color: c_text_sec
+          maxLines: 1
+        }
+      }
+
+      // Interactive Scrubber & Timestamps
+      Column {
+        fill: width
+        gap: 2
+        Slider {
+          value: pos
+          min: 0
+          max: safeDur
+          live: true
+          fill: width
+          color: c_text_pri
+          track: "#2C2C2E"
+          onChange: media("seek", value)
+        }
+        Row {
+          fill: width
+          Text {
+            text: fmtTime(pos, "m:ss", "UTC")
+            fontSize: 11
+            color: c_text_sec
+            weight: 1
+          }
+          Text {
+            text: "-${fmtTime(remaining, 'm:ss', 'UTC')}"
+            fontSize: 11
+            color: c_text_sec
+          }
+        }
+      }
+
+      // Oversized Tactile Transport Controls
+      Row {
+        fill: width
+        align: center
+        justify: spaceEvenly
+
+        // Shuffle Toggle
+        Box {
+          size: 46
+          radius: 23
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: media("action", "shuffle")
+          Text {
+            text: "🔀"
+            fontSize: 16
+          }
+        }
+
+        // Previous Track
+        Box {
+          size: 54
+          radius: 27
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: media("previous")
+          Text {
+            text: "⏮"
+            fontSize: 22
+            color: c_text_pri
+          }
+        }
+
+        // Prominent Inverted White Play/Pause Button
+        Box {
+          size: 72
+          radius: 36
+          background: c_pill_on
+          align: center
+          onTap: media("toggle")
+          Text {
+            text: isPlaying ? "⏸" : "▶"
+            fontSize: 28
+            color: "#000000"
+          }
+        }
+
+        // Next Track
+        Box {
+          size: 54
+          radius: 27
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: media("next")
+          Text {
+            text: "⏭"
+            fontSize: 22
+            color: c_text_pri
+          }
+        }
+
+        // Repeat Toggle
+        Box {
+          size: 46
+          radius: 23
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: media("action", "repeat")
+          Text {
+            text: "🔁"
+            fontSize: 16
+          }
+        }
+      }
+
+      // Output Device Switcher Pill
+      Box {
+        fill: width
+        padding: [12, 10]
+        radius: 14
+        background: c_pill_off
+        border: 1
+        borderColor: c_border
+        onTap: settings("output")
+        Row {
+          fill: width
+          align: center
+          gap: 8
+          Text { text: "🎧"; fontSize: 13 }
+          Text {
+            text: "Audio Output:"
+            fontSize: 12
+            color: c_text_sec
+          }
+          Text {
+            text: outName
+            fontSize: 12
+            bold: true
+            color: c_text_pri
+            weight: 1
+          }
+          Text {
+            text: "SWITCH ›"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // 2. MEDIA APPS & QUICK LAUNCH GRID
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Text {
+        text: "STREAMING & MEDIA APPS"
+        style: label
+        fontSize: 11
+        color: c_text_sec
+      }
+
+      // High-Contrast Monochrome Launch Tiles
+      Row {
+        fill: width
+        gap: 8
+
+        // YouTube
+        Box {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: androidApp("com.google.android.youtube")
+          Column {
+            align: center
+            gap: 4
+            Text { text: "▶"; fontSize: 20; color: c_text_pri }
+            Text { text: "YouTube"; fontSize: 11; bold: true; color: c_text_pri }
+          }
+        }
+
+        // Spotify
+        Box {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: androidApp("com.spotify.music")
+          Column {
+            align: center
+            gap: 4
+            Text { text: "●"; fontSize: 20; color: c_text_pri }
+            Text { text: "Spotify"; fontSize: 11; bold: true; color: c_text_pri }
+          }
+        }
+
+        // YouTube Music
+        Box {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: androidApp("com.google.android.apps.youtube.music")
+          Column {
+            align: center
+            gap: 4
+            Text { text: "♫"; fontSize: 20; color: c_text_pri }
+            Text { text: "YT Music"; fontSize: 11; bold: true; color: c_text_pri }
+          }
+        }
+      }
+
+      Row {
+        fill: width
+        gap: 8
+
+        // BookMyShow
+        Box {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: androidApp("com.bt.bms")
+          Column {
+            align: center
+            gap: 4
+            Text { text: "🎟"; fontSize: 20 }
+            Text { text: "BookMyShow"; fontSize: 11; bold: true; color: c_text_pri }
+          }
+        }
+
+        // Samsung Gallery / Video Player
+        Box {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: androidApp("com.sec.android.gallery3d")
+          Column {
+            align: center
+            gap: 4
+            Text { text: "🖼"; fontSize: 20 }
+            Text { text: "Gallery"; fontSize: 11; bold: true; color: c_text_pri }
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // 3. AUDIO & PLAYBACK QUICK CONTROLS (Bottom)
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "MASTER AUDIO VOLUME"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "${volPct}%"
+          fontSize: 12
+          bold: true
+          color: c_text_pri
+        }
+      }
+
+      Slider {
+        value: volPct
+        min: 0
+        max: 100
+        live: true
+        fill: width
+        color: c_text_pri
+        track: "#2C2C2E"
+        onChange: volume(value)
+      }
+
+      Row {
+        fill: width
+        gap: 8
+
+        // Quick Equalizer / Dolby Atmos Settings Pill
+        Box {
+          weight: 1
+          padding: [10, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: settings("sound")
+          Row {
+            align: center
+            gap: 6
+            Text { text: "🎚"; fontSize: 12 }
+            Text {
+              text: "Equalizer & Dolby"
+              fontSize: 11
+              bold: true
+              color: c_text_pri
+            }
+          }
+        }
+
+        // Quick Volume Settings Sheet
+        Box {
+          weight: 1
+          padding: [10, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: settings("volume")
+          Row {
+            align: center
+            gap: 6
+            Text { text: "🔊"; fontSize: 12 }
+            Text {
+              text: "Sound Settings"
+              fontSize: 11
+              bold: true
+              color: c_text_pri
+            }
+          }
+        }
+      }
+    }
+
+    // Bottom Navigation Bar Spacing
+    Spacer { height: screenInset + 12 }
+  }
+}
