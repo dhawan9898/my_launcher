@@ -1,0 +1,1037 @@
+face "dhawan-work" {
+  meta {
+    owl: 23
+    description: "Vantablack OLED Work, Uni & Productivity Workspace"
+    version: "1.0"
+    license: "MIT"
+    category: "productivity"
+  }
+
+  page: 1
+  statusBar: false
+
+  // --- Real-time Sources ---
+  source now = clock every 1m
+  source net = android.network every 5s
+  source sys = android.system every 5s
+  source modes = android.modes
+
+  // --- Vantablack High-Contrast Monochrome Design Tokens ---
+  let c_bg = "#000000"
+  let c_card = "#121214"
+  let c_border = "#262629"
+  let c_pill_off = "#1C1C1E"
+  let c_pill_on = "#FFFFFF"
+  let c_text_pri = "#FFFFFF"
+  let c_text_sec = "#8E8E93"
+
+  // Dynamic Status Readouts
+  let dateStr = fmtTime(now, "EEEE, d MMMM")
+  let timeStr = fmtTime(now, "HH:mm")
+  let isDnd = modes.dnd == true
+
+  // Interactive Task List State (Persisted across restarts)
+  state todos = [
+    "- [ ] Review lecture slides & assignments",
+    "- [ ] Check work Slack & team PRs",
+    "- [ ] Prepare project documentation",
+    "- [ ] Complete study notes & reading",
+    "- [x] Workspace environment setup"
+  ] persist
+
+  let pendingCount = count(todos, t => !startsWith(t, "- [x] "))
+
+  background: c_bg
+  padding: [16, 20, 16, 20]
+
+  Column {
+    gap: 14
+    fill: width
+    scroll: true
+
+    // Top Header: Navigation & Status
+    Row {
+      fill: width
+      align: center
+      Text {
+        text: "WORK & UNI WORKSPACE"
+        style: label
+        fontSize: 12
+        bold: true
+        color: c_text_sec
+        weight: 1
+      }
+      Row {
+        gap: 6
+        align: center
+
+        // All Apps Drawer Trigger
+        Row {
+          padding: [8, 5]
+          radius: 12
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            launcher("drawer")
+          }
+          Text {
+            text: "⊞ APPS"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
+        }
+
+        // Home Navigation Trigger (Home is on page 0 to the left)
+        Row {
+          padding: [10, 5]
+          radius: 12
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: launcher("page:0")
+          Text {
+            text: "‹ HOME"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 1: PRODUCTIVITY & FOCUS STATUS CARD
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Column {
+          weight: 1
+          gap: 2
+          Text {
+            text: dateStr
+            fontSize: 14
+            bold: true
+            color: c_text_pri
+          }
+          Text {
+            text: "${timeStr} • ${pendingCount} pending task${pendingCount == 1 ? '' : 's'}"
+            fontSize: 12
+            color: c_text_sec
+          }
+        }
+
+        // Quick Focus / DND Mode Toggle
+        Row {
+          align: center
+          gap: 6
+          padding: [10, 8]
+          radius: 12
+          background: isDnd ? c_pill_on : c_pill_off
+          border: isDnd ? 0 : 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            dnd("toggle")
+          }
+          Text {
+            text: isDnd ? "🌙" : "✦"
+            fontSize: 12
+            color: isDnd ? "#000000" : c_text_pri
+          }
+          Text {
+            text: isDnd ? "FOCUS ON" : "FOCUS MODE"
+            style: label
+            fontSize: 10
+            bold: true
+            color: isDnd ? "#000000" : c_text_pri
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 2: UNIVERSITY & ACADEMICS (Uni Apps)
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "🎓  UNIVERSITY & ACADEMICS"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "STUDY & COURSES"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      // Row 1: Notes & Docs
+      Row {
+        fill: width
+        gap: 8
+
+        // Samsung Notes
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.samsung.android.app.notes")
+          Text {
+            text: "📝"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Samsung Notes"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Notion
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("notion.id")
+          Text {
+            text: "📓"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Notion"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Google Drive
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.google.android.apps.docs")
+          Text {
+            text: "📁"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Drive"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+      }
+
+      // Row 2: Portal, PDF & Study Tools
+      Row {
+        fill: width
+        gap: 8
+
+        // Canvas / Student Portal
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.instructure.cstudent")
+          Text {
+            text: "🎓"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Canvas / Uni"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Adobe Acrobat / PDF Reader
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.adobe.reader")
+          Text {
+            text: "📄"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "PDF Reader"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Google Keep
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.google.android.keep")
+          Text {
+            text: "💡"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Keep"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 3: WORK & COLLABORATION (Work Apps)
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "💼  WORK & COLLABORATION"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "OFFICE & TEAMS"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      // Row 1: Communications
+      Row {
+        fill: width
+        gap: 8
+
+        // Slack
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.Slack")
+          Text {
+            text: "💬"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Slack"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Microsoft Teams
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.microsoft.teams")
+          Text {
+            text: "👥"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Teams"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Gmail
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.google.android.gm")
+          Text {
+            text: "✉"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Gmail"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+      }
+
+      // Row 2: Dev & Docs
+      Row {
+        fill: width
+        gap: 8
+
+        // GitHub
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.github.android")
+          Text {
+            text: "🐙"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "GitHub"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Microsoft Outlook
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.microsoft.office.outlook")
+          Text {
+            text: "📬"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Outlook"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+
+        // Google Docs / Office
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.google.android.apps.docs.editors.docs")
+          Text {
+            text: "📄"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Docs"
+            fontSize: 11
+            bold: true
+            align: center
+            maxLines: 1
+            color: c_text_pri
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 4: INTERACTIVE TASKS & TODO LIST
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      // Header Row
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "📋  TASKS & TODO LIST"
+          style: label
+          fontSize: 11
+          color: c_text_pri
+          weight: 1
+        }
+        Row {
+          padding: [8, 4]
+          radius: 10
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          Text {
+            text: "${pendingCount} left"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
+          }
+        }
+      }
+
+      // Inline Quick Add Task Row
+      Row {
+        fill: width
+        align: center
+        gap: 8
+        padding: [8, 10]
+        radius: 12
+        background: c_pill_off
+        border: 1
+        borderColor: c_border
+
+        Input {
+          weight: 1
+          placeholder: "Add task or study note..."
+          underline: false
+          clear: true
+          color: c_text_pri
+          fontSize: 13
+          onSubmit: {
+            if value != "" {
+              haptic("light")
+              todos = ["- [ ] " + value] + todos
+            }
+          }
+        }
+
+        Row {
+          padding: [6, 6]
+          radius: 8
+          background: c_pill_on
+          align: center
+          justify: center
+          onTap: {
+            haptic("light")
+          }
+          Text {
+            text: "⏎ ADD"
+            style: label
+            fontSize: 10
+            bold: true
+            color: "#000000"
+          }
+        }
+      }
+
+      // Render Task Rows
+      Column {
+        fill: width
+        gap: 8
+
+        for item, i in todos {
+          let isDone = startsWith(item, "- [x] ")
+          let taskTitle = isDone ? replace(item, "- [x] ", "") : replace(item, "- [ ] ", "")
+
+          Row {
+            fill: width
+            align: center
+            gap: 10
+            padding: [10, 10]
+            radius: 12
+            background: isDone ? "#08080A" : c_pill_off
+            border: 1
+            borderColor: isDone ? "#1A1A1C" : c_border
+
+            // Checkbox button
+            Row {
+              padding: [4, 4]
+              radius: 6
+              border: 1
+              borderColor: isDone ? c_pill_on : c_border
+              background: isDone ? c_pill_on : c_bg
+              align: center
+              justify: center
+              onTap: {
+                haptic("light")
+                let toggled = isDone ? replace(item, "- [x] ", "- [ ] ") : replace(item, "- [ ] ", "- [x] ")
+                todos = set(todos, i, toggled)
+              }
+              Text {
+                text: isDone ? "✓" : "○"
+                fontSize: 12
+                bold: true
+                color: isDone ? "#000000" : c_text_sec
+              }
+            }
+
+            // Task text (Tap toggles state)
+            Text {
+              text: taskTitle
+              fontSize: 13
+              bold: !isDone
+              color: isDone ? c_text_sec : c_text_pri
+              weight: 1
+              maxLines: 2
+              onTap: {
+                haptic("light")
+                let toggled = isDone ? replace(item, "- [x] ", "- [ ] ") : replace(item, "- [ ] ", "- [x] ")
+                todos = set(todos, i, toggled)
+              }
+            }
+
+            // Remove task action
+            Row {
+              padding: [4, 6]
+              radius: 6
+              align: center
+              justify: center
+              onTap: {
+                haptic("light")
+                todos = remove(todos, i)
+              }
+              Text {
+                text: "✕"
+                fontSize: 11
+                color: c_text_sec
+              }
+            }
+          }
+        }
+      }
+
+      // Quick Actions Footer
+      Row {
+        fill: width
+        justify: spaceBetween
+        align: center
+
+        Text {
+          text: "Clear completed"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+          onTap: {
+            haptic("medium")
+            todos = filter(todos, t => !startsWith(t, "- [x] "))
+          }
+        }
+
+        Text {
+          text: "Reset defaults"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+          onTap: {
+            haptic("medium")
+            todos = [
+              "- [ ] Review lecture slides & assignments",
+              "- [ ] Check work Slack & team PRs",
+              "- [ ] Prepare project documentation",
+              "- [ ] Complete study notes & reading",
+              "- [x] Workspace environment setup"
+            ]
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 5: QUICK PAYMENTS & UPI
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "💳  QUICK UPI & PAYMENTS"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "INSTANT SCAN"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      // Hero Prominent Scan QR Action Button
+      Row {
+        fill: width
+        align: center
+        justify: center
+        gap: 10
+        padding: [14, 12]
+        radius: 14
+        background: c_pill_on
+        onTap: {
+          haptic("medium")
+          url("upi://pay")
+        }
+
+        Text {
+          text: "⛶"
+          fontSize: 20
+          bold: true
+          color: "#000000"
+        }
+        Column {
+          gap: 2
+          Text {
+            text: "SCAN ANY UPI QR CODE"
+            fontSize: 13
+            bold: true
+            color: "#000000"
+          }
+          Text {
+            text: "Direct camera scan • GPay / PhonePe / Paytm / BHIM"
+            fontSize: 10
+            color: "#444444"
+          }
+        }
+      }
+
+      // Fast UPI App Launchers
+      Row {
+        fill: width
+        gap: 8
+
+        // Google Pay
+        Column {
+          weight: 1
+          padding: [10, 12]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 4
+          onTap: androidApp("com.google.android.apps.nbu.paisa.user")
+          Text { text: "G"; fontSize: 16; bold: true; color: c_text_pri; align: center }
+          Text { text: "GPay"; fontSize: 10; bold: true; color: c_text_pri; align: center }
+        }
+
+        // PhonePe
+        Column {
+          weight: 1
+          padding: [10, 12]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 4
+          onTap: androidApp("com.phonepe.app")
+          Text { text: "पे"; fontSize: 16; bold: true; color: c_text_pri; align: center }
+          Text { text: "PhonePe"; fontSize: 10; bold: true; color: c_text_pri; align: center }
+        }
+
+        // Paytm
+        Column {
+          weight: 1
+          padding: [10, 12]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 4
+          onTap: androidApp("net.one97.paytm")
+          Text { text: "₹"; fontSize: 16; bold: true; color: c_text_pri; align: center }
+          Text { text: "Paytm"; fontSize: 10; bold: true; color: c_text_pri; align: center }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 6: QUICK DEV & TERMINAL TOOLS
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "⚡  DEV & TERMINAL TOOLS"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "SHELL"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      Row {
+        fill: width
+        gap: 8
+
+        // Terminal Shell
+        Row {
+          weight: 1
+          padding: [10, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: terminal("bash")
+          Text { text: ">_"; fontSize: 12; bold: true; color: c_text_pri; align: center }
+          Text {
+            text: "Terminal"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
+          }
+        }
+
+        // btop System Monitor
+        Row {
+          weight: 1
+          padding: [10, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: terminal("btop")
+          Text { text: "💻"; fontSize: 12; align: center }
+          Text {
+            text: "btop"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 7: BOTTOM NAVIGATION DOCK
+    // =========================================================================
+    Row {
+      fill: width
+      gap: 10
+
+      // Home Dashboard Quick Jump Button (Page 0)
+      Row {
+        weight: 1
+        align: center
+        justify: center
+        gap: 8
+        padding: [14, 12]
+        radius: 14
+        background: c_pill_on
+        onTap: {
+          haptic("medium")
+          launcher("page:0")
+        }
+        Text {
+          text: "‹"
+          fontSize: 16
+          bold: true
+          color: "#000000"
+        }
+        Text {
+          text: "HOME DASHBOARD"
+          fontSize: 12
+          bold: true
+          color: "#000000"
+        }
+      }
+
+      // Music Player Quick Jump Button (Page -1)
+      Row {
+        weight: 1
+        align: center
+        justify: center
+        gap: 8
+        padding: [14, 12]
+        radius: 14
+        background: c_card
+        border: 1
+        borderColor: c_border
+        onTap: {
+          haptic("light")
+          launcher("page:-1")
+        }
+        Text {
+          text: "🎵"
+          fontSize: 15
+        }
+        Text {
+          text: "PLAYER"
+          fontSize: 12
+          bold: true
+          color: c_text_pri
+        }
+      }
+    }
+
+    // Dynamic inset spacer for Android navigation bar
+    Spacer { height: screenInset + 12 }
+  }
+}

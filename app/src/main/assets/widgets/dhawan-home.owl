@@ -120,15 +120,15 @@ face "dhawan-home" {
         }
       }
 
-      // Top Action Buttons: Music Player, All Apps & Settings
+      // Top Action Buttons: Music Player, Work, All Apps & Settings
       Row {
-        gap: 8
+        gap: 6
         align: center
 
-        // Music Player Trigger
+        // Music Player Trigger (Page -1)
         Box {
-          size: 40
-          radius: 20
+          size: 38
+          radius: 19
           background: c_card
           border: 1
           borderColor: c_border
@@ -139,15 +139,34 @@ face "dhawan-home" {
           }
           Text {
             text: "🎵"
-            fontSize: 15
+            fontSize: 14
+            align: center
+          }
+        }
+
+        // Work & Uni Workspace Trigger (Page 1)
+        Box {
+          size: 38
+          radius: 19
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            launcher("page:1")
+          }
+          Text {
+            text: "💼"
+            fontSize: 14
             align: center
           }
         }
 
         // All Apps Drawer Trigger
         Box {
-          size: 40
-          radius: 20
+          size: 38
+          radius: 19
           background: c_card
           border: 1
           borderColor: c_border
@@ -158,7 +177,7 @@ face "dhawan-home" {
           }
           Text {
             text: "⊞"
-            fontSize: 17
+            fontSize: 16
             align: center
             color: c_text_pri
           }
@@ -166,8 +185,8 @@ face "dhawan-home" {
 
         // Settings & Customization Gear Trigger
         Box {
-          size: 40
-          radius: 20
+          size: 38
+          radius: 19
           background: c_card
           border: 1
           borderColor: c_border
@@ -178,7 +197,7 @@ face "dhawan-home" {
           }
           Text {
             text: "⚙"
-            fontSize: 17
+            fontSize: 16
             align: center
             color: c_text_pri
           }
@@ -876,46 +895,19 @@ face "dhawan-home" {
     }
 
     // ==========================================
-    // 6. QUICK LAUNCH DOCK (ALL APPS & PLAYER)
+    // 6. QUICK LAUNCH DOCK (PLAYER, APPS & WORK)
     // ==========================================
     Row {
       fill: width
-      gap: 10
+      gap: 8
 
-      // All Apps Drawer Launcher Button
+      // Music Player Button (Page -1)
       Row {
         weight: 1
         align: center
         justify: center
-        gap: 8
-        padding: [14, 12]
-        radius: 14
-        background: c_pill_on
-        onTap: {
-          haptic("medium")
-          launcher("drawer")
-        }
-        Text {
-          text: "⊞"
-          fontSize: 16
-          bold: true
-          color: "#000000"
-        }
-        Text {
-          text: "ALL APPS"
-          fontSize: 12
-          bold: true
-          color: "#000000"
-        }
-      }
-
-      // Music Player Quick Jump Button
-      Row {
-        weight: 1
-        align: center
-        justify: center
-        gap: 8
-        padding: [14, 12]
+        gap: 6
+        padding: [12, 10]
         radius: 14
         background: c_card
         border: 1
@@ -926,12 +918,72 @@ face "dhawan-home" {
         }
         Text {
           text: "🎵"
-          fontSize: 15
+          fontSize: 14
+          align: center
         }
         Text {
-          text: "PLAYER ›"
-          fontSize: 12
+          text: "PLAYER"
+          fontSize: 11
           bold: true
+          align: center
+          color: c_text_pri
+        }
+      }
+
+      // All Apps Drawer Launcher Button
+      Row {
+        weight: 1
+        align: center
+        justify: center
+        gap: 6
+        padding: [12, 10]
+        radius: 14
+        background: c_pill_on
+        onTap: {
+          haptic("medium")
+          launcher("drawer")
+        }
+        Text {
+          text: "⊞"
+          fontSize: 15
+          bold: true
+          align: center
+          color: "#000000"
+        }
+        Text {
+          text: "ALL APPS"
+          fontSize: 11
+          bold: true
+          align: center
+          color: "#000000"
+        }
+      }
+
+      // Work & Uni Workspace Button (Page 1)
+      Row {
+        weight: 1
+        align: center
+        justify: center
+        gap: 6
+        padding: [12, 10]
+        radius: 14
+        background: c_card
+        border: 1
+        borderColor: c_border
+        onTap: {
+          haptic("light")
+          launcher("page:1")
+        }
+        Text {
+          text: "💼"
+          fontSize: 14
+          align: center
+        }
+        Text {
+          text: "WORK"
+          fontSize: 11
+          bold: true
+          align: center
           color: c_text_pri
         }
       }
