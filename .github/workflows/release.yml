@@ -26,6 +26,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Make gradlew and scripts executable
+        run: chmod +x gradlew scripts/*.sh scripts/*/*.sh 2>/dev/null || chmod +x gradlew scripts/*.sh
+
       - name: Determine version and release tag
         id: version
         run: |
@@ -46,7 +49,7 @@ jobs:
           sudo apt-get update -q && sudo apt-get install -yq libarchive-tools
           ndk=$(sed -n 's/^NDK_VERSION=//p' scripts/fetch-proot.sh)
           [ -d "$ANDROID_HOME/ndk/$ndk" ] || yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk" >/dev/null
-          scripts/fetch-proot.sh
+          bash scripts/fetch-proot.sh
 
       - name: Configure signing key
         env:
@@ -58,24 +61,16 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Using custom keystore from repository secrets"
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
-            cat > keystore.properties <<EOF
-          storeFile=$RUNNER_TEMP/upload.jks
-          storePassword=$KEYSTORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PASSWORD
-          EOF
+            printf "storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n" \
+              "$RUNNER_TEMP/upload.jks" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
           else
             echo "KEYSTORE_BASE64 not configured; generating a standalone release key for packaging"
             keytool -genkeypair -v -keystore "$RUNNER_TEMP/upload.jks" -alias mylauncher \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
               -dname "CN=MyLauncher, OU=Dev, O=Dhawan, L=Bengaluru, ST=KA, C=IN"
-            cat > keystore.properties <<EOF
-          storeFile=$RUNNER_TEMP/upload.jks
-          storePassword=android
-          keyAlias=mylauncher
-          keyPassword=android
-          EOF
+            printf "storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n" \
+              "$RUNNER_TEMP/upload.jks" "android" "mylauncher" "android" > keystore.properties
           fi
 
       - name: Test and build release APK

@@ -21,6 +21,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Make gradlew and scripts executable
+        run: chmod +x gradlew scripts/*.sh scripts/*/*.sh 2>/dev/null || chmod +x gradlew scripts/*.sh
+
       # The NDK app/build.gradle.kts pins; installed up front so AGP doesn't download it mid-build.
       - name: Install the NDK
         run: |

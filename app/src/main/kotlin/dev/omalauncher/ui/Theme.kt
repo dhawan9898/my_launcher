@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -246,8 +247,6 @@ val PanelGap: Dp get() = LauncherStyle.style[Style.SCREEN_GAPS_OUT].toFloat().dp
 
 /** The widest a column of text and rows gets on a big screen: the bar beside landscape home, text-heavy panels. */
 val ReadingWidth = 640.dp
-
-import androidx.compose.ui.draw.shadow
 
 /**
  * A home-screen surface over the wallpaper: tiles, the prompt bar, the rails; outlined as focused while [focused].
