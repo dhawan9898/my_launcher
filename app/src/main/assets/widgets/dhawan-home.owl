@@ -63,8 +63,11 @@ face "dhawan-home" {
   let storRatio = storTotal > 0 ? (storUsed / storTotal) : 0.60
   let storPct = round(storRatio * 100)
 
-  // Customizable Quick Toggles Configuration
+  // Customizable Quick Toggles Configuration (Persisted across restarts, editable manually without agent)
   state cfg_customizing = false
+  state show_add_catalog = false
+  state user_toggles = ["torch", "volume", "dnd", "wifi", "btop", "bluetooth"] persist
+  state toggle_cols = 3 persist
 
   background: c_bg
   padding: [16, 20, 16, 20]
@@ -323,15 +326,16 @@ face "dhawan-home" {
       padding: 16
       gap: 12
 
-      // Header with subtle edit/customize trigger
+      // Header: Title & Customize Trigger
       Row {
         fill: width
         align: center
         Text {
-          text: "QUICK CONTROLS"
+          text: cfg_customizing ? "CUSTOMIZE TOGGLES" : "QUICK CONTROLS"
           style: label
           fontSize: 11
-          color: c_text_sec
+          color: cfg_customizing ? c_text_pri : c_text_sec
+          bold: cfg_customizing
           weight: 1
         }
         Row {
@@ -339,173 +343,259 @@ face "dhawan-home" {
           align: center
           padding: [8, 4]
           radius: 8
-          background: c_pill_off
-          border: 1
+          background: cfg_customizing ? c_pill_on : c_pill_off
+          border: cfg_customizing ? 0 : 1
           borderColor: c_border
           onTap: {
             haptic("light")
-            launcher("style")
+            cfg_customizing = !cfg_customizing
+            if !cfg_customizing { show_add_catalog = false }
           }
           Text {
-            text: "✦"
+            text: cfg_customizing ? "✓" : "✦"
             fontSize: 10
-            color: c_text_pri
+            color: cfg_customizing ? "#000000" : c_text_pri
           }
           Text {
-            text: "CUSTOMIZE"
+            text: cfg_customizing ? "DONE" : "CUSTOMIZE"
             style: label
             fontSize: 10
             bold: true
-            color: c_text_pri
+            color: cfg_customizing ? "#000000" : c_text_pri
           }
         }
       }
 
-      // 2x3 Grid of Interactive Monochrome Pill Toggles
-      // Row 1: Flashlight, Media Volume, Do Not Disturb
-      Row {
-        fill: width
-        gap: 8
-
-        // 1. Flashlight
-        let torchOn = modes.torch == true
-        Box {
-          weight: 1
-          padding: [10, 10]
-          radius: 12
-          background: torchOn ? c_pill_on : c_pill_off
-          border: torchOn ? 0 : 1
-          borderColor: c_border
-          onTap: torch("toggle")
-          Column {
-            align: center
-            gap: 2
-            Text { text: "🔦"; fontSize: 14 }
-            Text {
-              text: torchOn ? "Torch On" : "Torch"
-              fontSize: 11
-              bold: true
-              color: torchOn ? "#000000" : c_text_pri
-            }
-          }
-        }
-
-        // 2. Media Volume Toggle / Mute
-        let volActive = !vol.muted && (vol.level ?? 0) > 0
-        Box {
-          weight: 1
-          padding: [10, 10]
-          radius: 12
-          background: volActive ? c_pill_on : c_pill_off
-          border: volActive ? 0 : 1
-          borderColor: c_border
-          onTap: volume("toggle")
-          Column {
-            align: center
-            gap: 2
-            Text { text: volActive ? "🔊" : "🔇"; fontSize: 14 }
-            Text {
-              text: vol.muted ? "Muted" : "${vol.level ?? 0}%"
-              fontSize: 11
-              bold: true
-              color: volActive ? "#000000" : c_text_pri
-            }
-          }
-        }
-
-        // 3. Do Not Disturb
-        let dndOn = modes.dnd == true
-        Box {
-          weight: 1
-          padding: [10, 10]
-          radius: 12
-          background: dndOn ? c_pill_on : c_pill_off
-          border: dndOn ? 0 : 1
-          borderColor: c_border
-          onTap: dnd("toggle")
-          Column {
-            align: center
-            gap: 2
-            Text { text: "🌙"; fontSize: 14 }
-            Text {
-              text: dndOn ? "DND On" : "DND"
-              fontSize: 11
-              bold: true
-              color: dndOn ? "#000000" : c_text_pri
-            }
-          }
-        }
-      }
-
-      // Row 2: Wi-Fi, Terminal Monitor, Bluetooth
-      Row {
-        fill: width
-        gap: 8
-
-        // 4. Wi-Fi / Hotspot
-        let wifiOn = modes.wifi == true
-        Box {
-          weight: 1
-          padding: [10, 10]
-          radius: 12
-          background: wifiOn ? c_pill_on : c_pill_off
-          border: wifiOn ? 0 : 1
-          borderColor: c_border
-          onTap: settings("wifi")
-          Column {
-            align: center
-            gap: 2
-            Text { text: "📶"; fontSize: 14 }
-            Text {
-              text: wifiOn ? "Wi-Fi On" : "Wi-Fi"
-              fontSize: 11
-              bold: true
-              color: wifiOn ? "#000000" : c_text_pri
-            }
-          }
-        }
-
-        // 5. Monitor / Terminal (`btop`)
-        Box {
-          weight: 1
-          padding: [10, 10]
-          radius: 12
-          background: c_pill_off
+      // Customization Controls: Size Selector (Samsung Quick Panel 2/3/4 cols) & Add Catalog
+      if cfg_customizing {
+        Column {
+          fill: width
+          gap: 8
+          padding: [8, 8]
+          radius: 10
+          background: c_bg
           border: 1
           borderColor: c_border
-          onTap: terminal("btop")
-          Column {
+
+          // Size Switcher Row
+          Row {
+            fill: width
             align: center
-            gap: 2
-            Text { text: "💻"; fontSize: 14 }
+            gap: 6
             Text {
-              text: "btop"
-              fontSize: 11
-              bold: true
-              color: c_text_pri
+              text: "GRID SIZE:"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              weight: 1
+            }
+            Row {
+              padding: [6, 4]
+              radius: 6
+              background: toggle_cols == 2 ? c_pill_on : c_pill_off
+              onTap: { haptic("light"); toggle_cols = 2 }
+              Text {
+                text: "2 Large"
+                fontSize: 10
+                bold: true
+                color: toggle_cols == 2 ? "#000000" : c_text_sec
+              }
+            }
+            Row {
+              padding: [6, 4]
+              radius: 6
+              background: toggle_cols == 3 ? c_pill_on : c_pill_off
+              onTap: { haptic("light"); toggle_cols = 3 }
+              Text {
+                text: "3 Normal"
+                fontSize: 10
+                bold: true
+                color: toggle_cols == 3 ? "#000000" : c_text_sec
+              }
+            }
+            Row {
+              padding: [6, 4]
+              radius: 6
+              background: toggle_cols == 4 ? c_pill_on : c_pill_off
+              onTap: { haptic("light"); toggle_cols = 4 }
+              Text {
+                text: "4 Compact"
+                fontSize: 10
+                bold: true
+                color: toggle_cols == 4 ? "#000000" : c_text_sec
+              }
+            }
+          }
+
+          // Action Buttons: Add & Reset
+          Row {
+            fill: width
+            gap: 6
+            Row {
+              weight: 1
+              align: center
+              justify: center
+              gap: 4
+              padding: [6, 6]
+              radius: 6
+              background: show_add_catalog ? c_pill_on : c_pill_off
+              border: 1
+              borderColor: c_border
+              onTap: { haptic("light"); show_add_catalog = !show_add_catalog }
+              Text {
+                text: show_add_catalog ? "▲ Close Menu" : "➕ Add New Toggle"
+                fontSize: 10
+                bold: true
+                color: show_add_catalog ? "#000000" : c_text_pri
+              }
+            }
+            Row {
+              padding: [6, 6]
+              radius: 6
+              background: c_pill_off
+              border: 1
+              borderColor: c_border
+              onTap: {
+                haptic("medium")
+                user_toggles = ["torch", "volume", "dnd", "wifi", "btop", "bluetooth"]
+                toggle_cols = 3
+              }
+              Text {
+                text: "↺ Reset"
+                fontSize: 10
+                color: c_text_sec
+              }
+            }
+          }
+
+          // Catalog of Available Toggles
+          if show_add_catalog {
+            Flow {
+              fill: width
+              gap: 6
+              for catId in ["torch", "volume", "dnd", "wifi", "btop", "bluetooth", "airplane", "dark", "rotate", "saver", "hotspot", "nfc"] {
+                Row {
+                  gap: 4
+                  align: center
+                  padding: [6, 4]
+                  radius: 6
+                  background: c_pill_off
+                  border: 1
+                  borderColor: c_border
+                  onTap: {
+                    haptic("light")
+                    user_toggles = user_toggles + [catId]
+                  }
+                  Text {
+                    text: "+ " + catId
+                    fontSize: 10
+                    bold: true
+                    color: c_text_pri
+                  }
+                }
+              }
             }
           }
         }
+      }
 
-        // 6. Bluetooth
-        let btOn = modes.bluetooth == true
-        Box {
-          weight: 1
-          padding: [10, 10]
-          radius: 12
-          background: btOn ? c_pill_on : c_pill_off
-          border: btOn ? 0 : 1
-          borderColor: c_border
-          onTap: settings("bluetooth")
-          Column {
-            align: center
-            gap: 2
-            Text { text: "ᛒ"; fontSize: 14 }
-            Text {
-              text: btOn ? "BT On" : "Bluetooth"
-              fontSize: 11
-              bold: true
-              color: btOn ? "#000000" : c_text_pri
+      // Dynamic Auto-Resizing Grid of Toggles
+      Column {
+        fill: width
+        gap: 8
+
+        for rowItems, rowIdx in chunk(user_toggles, toggle_cols) {
+          Row {
+            fill: width
+            gap: 8
+
+            for tId, colIdx in rowItems {
+              let globalIdx = rowIdx * toggle_cols + colIdx
+              let isTorch = tId == "torch"
+              let isVol = tId == "volume"
+              let isDnd = tId == "dnd"
+              let isWifi = tId == "wifi"
+              let isBtop = tId == "btop"
+              let isBt = tId == "bluetooth"
+              let isAir = tId == "airplane"
+              let isDark = tId == "dark"
+              let isRot = tId == "rotate"
+              let isSav = tId == "saver"
+              let isHot = tId == "hotspot"
+              let isNfc = tId == "nfc"
+
+              let isActive = isTorch ? (modes.torch == true) : isVol ? (!vol.muted && (vol.level ?? 0) > 0) : isDnd ? (modes.dnd == true) : isWifi ? (modes.wifi == true) : isBt ? (modes.bluetooth == true) : isAir ? (modes.airplane == true) : isDark ? (modes.dark == true) : isRot ? (modes.rotate == true) : isSav ? (modes.saver == true) : false
+
+              let tIcon = isTorch ? "🔦" : isVol ? ((vol.level ?? 0) > 0 && !vol.muted ? "🔊" : "🔇") : isDnd ? "🌙" : isWifi ? "📶" : isBtop ? "💻" : isBt ? "ᛒ" : isAir ? "✈" : isDark ? "◐" : isRot ? "⟲" : isSav ? "⚡" : isHot ? "📡" : isNfc ? "📳" : "⚙"
+
+              let tLabel = isTorch ? (isActive ? "Torch On" : "Torch") : isVol ? (vol.muted ? "Muted" : "${vol.level ?? 0}%") : isDnd ? (isActive ? "DND On" : "DND") : isWifi ? (isActive ? "Wi-Fi On" : "Wi-Fi") : isBtop ? "btop" : isBt ? (isActive ? "BT On" : "Bluetooth") : isAir ? (isActive ? "Flight On" : "Airplane") : isDark ? (isActive ? "Dark On" : "Dark") : isRot ? (isActive ? "Auto-Rot" : "Rotate") : isSav ? (isActive ? "Saver On" : "Battery") : isHot ? "Hotspot" : isNfc ? "NFC" : tId
+
+              Box {
+                weight: 1
+                padding: toggle_cols == 2 ? [12, 12] : toggle_cols == 4 ? [8, 6] : [10, 10]
+                radius: 12
+                background: (!cfg_customizing && isActive) ? c_pill_on : c_pill_off
+                border: (!cfg_customizing && isActive) ? 0 : 1
+                borderColor: c_border
+                onTap: {
+                  haptic("light")
+                  if cfg_customizing {
+                    user_toggles = remove(user_toggles, globalIdx)
+                  } else if isTorch {
+                    torch("toggle")
+                  } else if isVol {
+                    volume("toggle")
+                  } else if isDnd {
+                    dnd("toggle")
+                  } else if isWifi {
+                    settings("wifi")
+                  } else if isBtop {
+                    terminal("btop")
+                  } else if isBt {
+                    settings("bluetooth")
+                  } else if isAir {
+                    settings("airplane")
+                  } else if isDark {
+                    settings("dark")
+                  } else if isRot {
+                    settings("display")
+                  } else if isSav {
+                    settings("battery")
+                  } else if isHot {
+                    settings("internet")
+                  } else if isNfc {
+                    settings("nfc")
+                  }
+                }
+
+                Column {
+                  align: center
+                  gap: 2
+                  Row {
+                    align: center
+                    gap: 4
+                    Text {
+                      text: tIcon
+                      fontSize: toggle_cols == 2 ? 16 : toggle_cols == 4 ? 12 : 14
+                    }
+                    if cfg_customizing {
+                      Text {
+                        text: "✕"
+                        fontSize: 10
+                        bold: true
+                        color: "#FF453A"
+                      }
+                    }
+                  }
+                  Text {
+                    text: tLabel
+                    fontSize: toggle_cols == 2 ? 12 : toggle_cols == 4 ? 9 : 11
+                    bold: true
+                    maxLines: 1
+                    color: (!cfg_customizing && isActive) ? "#000000" : c_text_pri
+                  }
+                }
+              }
             }
           }
         }

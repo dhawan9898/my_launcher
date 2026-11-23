@@ -535,7 +535,7 @@ face "dhawan-work" {
           borderColor: c_border
           onTap: {
             haptic("light")
-            androidApp("com.google.android.gm")
+            androidApp("com.microsoft.office.outlook")
           }
           Text {
             text: "✉"
@@ -544,7 +544,7 @@ face "dhawan-work" {
           }
           Column {
             Text {
-              text: "Gmail"
+              text: "Outlook"
               fontSize: 13
               bold: true
               color: c_text_pri
@@ -630,7 +630,7 @@ face "dhawan-work" {
           }
         }
 
-        // Browser (Chrome)
+        // Browser (Brave)
         Row {
           weight: 1
           align: center
@@ -642,22 +642,22 @@ face "dhawan-work" {
           borderColor: c_border
           onTap: {
             haptic("light")
-            androidApp("com.android.chrome")
+            androidApp("com.brave.browser")
           }
           Text {
-            text: "🌐"
+            text: "🦁"
             fontSize: 16
             color: c_text_pri
           }
           Column {
             Text {
-              text: "Chrome"
+              text: "Brave"
               fontSize: 13
               bold: true
               color: c_text_pri
             }
             Text {
-              text: "Web Browser"
+              text: "Brave Browser"
               fontSize: 10
               color: c_text_sec
             }
