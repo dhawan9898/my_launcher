@@ -50,7 +50,12 @@ object SamsungS24Ultra {
 
             // Target 120Hz display refresh rate on supported displays
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val display = activity.display
+                @Suppress("DEPRECATION")
+                val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    activity.display
+                } else {
+                    activity.windowManager.defaultDisplay
+                }
                 val modes = display?.supportedModes.orEmpty()
                 val mode120Hz = modes.firstOrNull { mode ->
                     val rate = mode.refreshRate
