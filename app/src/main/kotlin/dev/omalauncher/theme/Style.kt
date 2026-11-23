@@ -160,7 +160,7 @@ class Style(
                 false,
                 "The empty page after home's last, for new tiles; false shows it only while a tile is carried, to drop it on.",
             )
-        val HOME_PAGE = Setting.Count("home.home-page", 0, -99..99, "The page home opens on and Home returns to: 1 is the first page of tiles, 0 the face left of it, -1 the one left of that. A number with no page of its own takes the first page after it, or the last page when it is past them all.")
+        val HOME_PAGE = Setting.Count("home.home-page", -1, -99..99, "The page home opens on and Home returns to: 1 is the first page of tiles, 0 the face left of it, -1 the one left of that. A number with no page of its own takes the first page after it, or the last page when it is past them all.")
         val COLUMNS = Setting.Count("home.columns", 6, 4..9, "Columns of home's grid. Fewer make bigger cells, and apps show their names under their icons once a cell is tall enough.")
         val FORCE_SINGLE_PAGE =
             Setting.Flag(

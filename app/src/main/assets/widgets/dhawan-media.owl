@@ -7,7 +7,7 @@ face "dhawan-media" {
     category: "media"
   }
 
-  page: -1
+  page: -2
   statusBar: false
 
   // --- Real-time Android Media & Audio Sources ---
@@ -85,18 +85,41 @@ face "dhawan-media" {
 
         // Home Navigation Trigger
         Row {
-          padding: [10, 5]
+          padding: [8, 5]
           radius: 12
           background: c_card
           border: 1
           borderColor: c_border
           align: center
-          onTap: launcher("page:0")
+          onTap: {
+            haptic("light")
+            launcher("page:-1")
+          }
           Text {
             text: "HOME ›"
-            fontSize: 11
+            fontSize: 10
             bold: true
             color: c_text_pri
+          }
+        }
+
+        // Work Navigation Trigger
+        Row {
+          padding: [8, 5]
+          radius: 12
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            launcher("page:0")
+          }
+          Text {
+            text: "WORK ›"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
           }
         }
       }

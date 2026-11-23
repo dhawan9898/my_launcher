@@ -7,7 +7,7 @@ face "dhawan-work" {
     category: "productivity"
   }
 
-  page: 1
+  page: 0
   statusBar: false
 
   // --- Real-time Sources ---
@@ -85,7 +85,26 @@ face "dhawan-work" {
           }
         }
 
-        // Home Navigation Trigger (Home is on page 0 to the left)
+        // Player Trigger (Page -2)
+        Row {
+          padding: [8, 5]
+          radius: 12
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            launcher("page:-2")
+          }
+          Text {
+            text: "🎵"
+            fontSize: 10
+            bold: true
+          }
+        }
+
+        // Home Navigation Trigger (Home is on page -1)
         Row {
           padding: [10, 5]
           radius: 12
@@ -93,7 +112,10 @@ face "dhawan-work" {
           border: 1
           borderColor: c_border
           align: center
-          onTap: launcher("page:0")
+          onTap: {
+            haptic("light")
+            launcher("page:-1")
+          }
           Text {
             text: "‹ HOME"
             fontSize: 11
@@ -976,7 +998,7 @@ face "dhawan-work" {
       fill: width
       gap: 10
 
-      // Home Dashboard Quick Jump Button (Page 0)
+      // Home Dashboard Quick Jump Button (Page -1)
       Row {
         weight: 1
         align: center
@@ -987,7 +1009,7 @@ face "dhawan-work" {
         background: c_pill_on
         onTap: {
           haptic("medium")
-          launcher("page:0")
+          launcher("page:-1")
         }
         Text {
           text: "‹"
@@ -1003,7 +1025,7 @@ face "dhawan-work" {
         }
       }
 
-      // Music Player Quick Jump Button (Page -1)
+      // Music Player Quick Jump Button (Page -2)
       Row {
         weight: 1
         align: center
@@ -1016,7 +1038,7 @@ face "dhawan-work" {
         borderColor: c_border
         onTap: {
           haptic("light")
-          launcher("page:-1")
+          launcher("page:-2")
         }
         Text {
           text: "🎵"
