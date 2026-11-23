@@ -47,7 +47,8 @@ face "dhawan-home" {
   let tempMin = day ? day.mintempC : "20"
 
   // Calendar week calculations (7 days: Monday to Sunday)
-  let dayOfWeek = num(fmtTime(now, "u")) - 1
+  let dayName = fmtTime(now, "E", null, "en")
+  let dayOfWeek = dayName == "Mon" ? 0 : dayName == "Tue" ? 1 : dayName == "Wed" ? 2 : dayName == "Thu" ? 3 : dayName == "Fri" ? 4 : dayName == "Sat" ? 5 : 6
   let weekLabels = ["M", "T", "W", "T", "F", "S", "S"]
 
   // Telemetry ratios
@@ -97,6 +98,7 @@ face "dhawan-home" {
           text: "D"
           fontSize: 18
           bold: true
+          align: center
           color: c_text_pri
         }
       }
@@ -118,10 +120,29 @@ face "dhawan-home" {
         }
       }
 
-      // Top Action Buttons: All Apps & Settings
+      // Top Action Buttons: Music Player, All Apps & Settings
       Row {
         gap: 8
         align: center
+
+        // Music Player Trigger
+        Box {
+          size: 40
+          radius: 20
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            launcher("page:-1")
+          }
+          Text {
+            text: "🎵"
+            fontSize: 15
+            align: center
+          }
+        }
 
         // All Apps Drawer Trigger
         Box {
@@ -138,6 +159,7 @@ face "dhawan-home" {
           Text {
             text: "⊞"
             fontSize: 17
+            align: center
             color: c_text_pri
           }
         }
@@ -157,6 +179,7 @@ face "dhawan-home" {
           Text {
             text: "⚙"
             fontSize: 17
+            align: center
             color: c_text_pri
           }
         }
@@ -232,15 +255,17 @@ face "dhawan-home" {
       Row {
         fill: width
         align: center
-        justify: spaceBetween
+        gap: 6
         onTap: calendar("open")
         for i in range(7) {
           let isToday = i == dayOfWeek
           let dayDate = fmtTime(now + (i - dayOfWeek) * 86400, "d")
           Column {
+            weight: 1
             align: center
+            justify: center
             gap: 4
-            padding: [10, 8]
+            padding: [0, 8]
             radius: 12
             background: isToday ? c_pill_on : c_pill_off
             border: isToday ? 0 : 1
@@ -249,12 +274,14 @@ face "dhawan-home" {
               text: weekLabels[i]
               fontSize: 11
               bold: true
+              align: center
               color: isToday ? "#000000" : c_text_sec
             }
             Text {
               text: dayDate
               fontSize: 13
               bold: isToday
+              align: center
               color: isToday ? "#000000" : c_text_pri
             }
           }
@@ -267,55 +294,53 @@ face "dhawan-home" {
         gap: 8
 
         // Location & Condition Pill
-        Box {
+        Row {
           weight: 1
-          padding: [12, 8]
+          padding: [10, 8]
           radius: 12
           background: c_pill_off
           border: 1
           borderColor: c_border
+          align: center
+          gap: 6
           onTap: androidApp("com.sec.android.daemonapp")
-          Row {
-            align: center
-            gap: 6
-            Text { text: "📍"; fontSize: 11 }
-            Text {
-              text: "${condText} • ${place}"
-              fontSize: 11
-              bold: true
-              maxLines: 1
-              color: c_text_pri
-            }
+          Text { text: "📍"; fontSize: 11; align: center }
+          Text {
+            text: "${condText} • ${place}"
+            fontSize: 11
+            bold: true
+            maxLines: 1
+            weight: 1
+            color: c_text_pri
           }
         }
 
         // Alarm Pill (Reads genuine Android system next-alarm broadcast/API)
-        Box {
+        Row {
           weight: 1
-          padding: [12, 8]
+          padding: [10, 8]
           radius: 12
           background: c_pill_off
           border: 1
           borderColor: c_border
+          align: center
+          gap: 6
           onTap: androidApp(alarm.app ?? "com.sec.android.app.clockpackage")
-          Row {
-            align: center
-            gap: 6
-            Text { text: "⏰"; fontSize: 11 }
-            Text {
-              text: alarm.set ? fmtTime(alarm.time, "EEE HH:mm") : "No alarm set"
-              fontSize: 11
-              bold: true
-              maxLines: 1
-              color: alarm.set ? c_text_pri : c_text_sec
-            }
+          Text { text: "⏰"; fontSize: 11; align: center }
+          Text {
+            text: alarm.set ? fmtTime(alarm.time, "EEE HH:mm") : "No alarm set"
+            fontSize: 11
+            bold: true
+            maxLines: 1
+            weight: 1
+            color: alarm.set ? c_text_pri : c_text_sec
           }
         }
       }
     }
 
     // ==========================================
-    // 3. 2x3 QUICK TOGGLES & MEDIA SLIDER CARD
+    // 3. QUICK TOGGLES & MEDIA SLIDER CARD
     // ==========================================
     Column {
       fill: width
@@ -530,13 +555,16 @@ face "dhawan-home" {
 
               let tLabel = isTorch ? (isActive ? "Torch On" : "Torch") : isVol ? (vol.muted ? "Muted" : "${vol.level ?? 0}%") : isDnd ? (isActive ? "DND On" : "DND") : isWifi ? (isActive ? "Wi-Fi On" : "Wi-Fi") : isBtop ? "btop" : isBt ? (isActive ? "BT On" : "Bluetooth") : isAir ? (isActive ? "Flight On" : "Airplane") : isDark ? (isActive ? "Dark On" : "Dark") : isRot ? (isActive ? "Auto-Rot" : "Rotate") : isSav ? (isActive ? "Saver On" : "Battery") : isHot ? "Hotspot" : isNfc ? "NFC" : tId
 
-              Box {
+              Column {
                 weight: 1
                 padding: toggle_cols == 2 ? [12, 12] : toggle_cols == 4 ? [8, 6] : [10, 10]
                 radius: 12
                 background: (!cfg_customizing && isActive) ? c_pill_on : c_pill_off
                 border: (!cfg_customizing && isActive) ? 0 : 1
                 borderColor: c_border
+                align: center
+                justify: center
+                gap: 4
                 onTap: {
                   haptic("light")
                   if cfg_customizing {
@@ -568,32 +596,32 @@ face "dhawan-home" {
                   }
                 }
 
-                Column {
+                Row {
                   align: center
-                  gap: 2
-                  Row {
-                    align: center
-                    gap: 4
-                    Text {
-                      text: tIcon
-                      fontSize: toggle_cols == 2 ? 16 : toggle_cols == 4 ? 12 : 14
-                    }
-                    if cfg_customizing {
-                      Text {
-                        text: "✕"
-                        fontSize: 10
-                        bold: true
-                        color: "#FF453A"
-                      }
-                    }
-                  }
+                  justify: center
+                  gap: 4
                   Text {
-                    text: tLabel
-                    fontSize: toggle_cols == 2 ? 12 : toggle_cols == 4 ? 9 : 11
-                    bold: true
-                    maxLines: 1
+                    text: tIcon
+                    fontSize: toggle_cols == 2 ? 18 : toggle_cols == 4 ? 13 : 15
+                    align: center
                     color: (!cfg_customizing && isActive) ? "#000000" : c_text_pri
                   }
+                  if cfg_customizing {
+                    Text {
+                      text: "✕"
+                      fontSize: 10
+                      bold: true
+                      color: "#FF453A"
+                    }
+                  }
+                }
+                Text {
+                  text: tLabel
+                  fontSize: toggle_cols == 2 ? 12 : toggle_cols == 4 ? 9 : 11
+                  bold: true
+                  align: center
+                  maxLines: 1
+                  color: (!cfg_customizing && isActive) ? "#000000" : c_text_pri
                 }
               }
             }
@@ -634,7 +662,7 @@ face "dhawan-home" {
       borderColor: c_border
       radius: 20
       padding: 16
-      gap: 12
+      gap: 14
 
       Text {
         text: "DEVICE TELEMETRY"
@@ -646,13 +674,16 @@ face "dhawan-home" {
       Row {
         fill: width
         align: center
-        justify: spaceEvenly
+        gap: 8
 
         // Battery Ring
         Column {
+          weight: 1
           align: center
-          gap: 6
+          justify: center
+          gap: 8
           Box {
+            size: 68
             align: center
             Ring {
               value: batLevel / 100
@@ -665,6 +696,7 @@ face "dhawan-home" {
               text: "${batLevel}%"
               fontSize: 14
               bold: true
+              align: center
               color: c_text_pri
             }
           }
@@ -672,15 +704,19 @@ face "dhawan-home" {
             text: bat.charging ? "CHARGING" : "BATTERY"
             fontSize: 10
             bold: true
+            align: center
             color: c_text_sec
           }
         }
 
         // Memory (RAM) Ring
         Column {
+          weight: 1
           align: center
-          gap: 6
+          justify: center
+          gap: 8
           Box {
+            size: 68
             align: center
             Ring {
               value: memRatio
@@ -693,6 +729,7 @@ face "dhawan-home" {
               text: "${memPct}%"
               fontSize: 14
               bold: true
+              align: center
               color: c_text_pri
             }
           }
@@ -700,15 +737,19 @@ face "dhawan-home" {
             text: "RAM"
             fontSize: 10
             bold: true
+            align: center
             color: c_text_sec
           }
         }
 
         // Storage Ring
         Column {
+          weight: 1
           align: center
-          gap: 6
+          justify: center
+          gap: 8
           Box {
+            size: 68
             align: center
             Ring {
               value: storRatio
@@ -721,6 +762,7 @@ face "dhawan-home" {
               text: "${storPct}%"
               fontSize: 14
               bold: true
+              align: center
               color: c_text_pri
             }
           }
@@ -728,6 +770,7 @@ face "dhawan-home" {
             text: "STORAGE"
             fontSize: 10
             bold: true
+            align: center
             color: c_text_sec
           }
         }
@@ -757,12 +800,13 @@ face "dhawan-home" {
           color: c_text_pri
           weight: 1
         }
-        Box {
+        Row {
           padding: [8, 4]
           radius: 10
           background: c_pill_off
           border: 1
           borderColor: c_border
+          align: center
           Text {
             text: "${len(notifs.items ?? [])} unread"
             fontSize: 11
@@ -832,7 +876,7 @@ face "dhawan-home" {
     }
 
     // ==========================================
-    // 6. QUICK LAUNCH DOCK (ALL APPS & CUSTOMIZE)
+    // 6. QUICK LAUNCH DOCK (ALL APPS & PLAYER)
     // ==========================================
     Row {
       fill: width
@@ -847,7 +891,6 @@ face "dhawan-home" {
         padding: [14, 12]
         radius: 14
         background: c_pill_on
-        border: 0
         onTap: {
           haptic("medium")
           launcher("drawer")
@@ -866,7 +909,7 @@ face "dhawan-home" {
         }
       }
 
-      // Customize Widgets & Home Style Button
+      // Music Player Quick Jump Button
       Row {
         weight: 1
         align: center
@@ -879,15 +922,14 @@ face "dhawan-home" {
         borderColor: c_border
         onTap: {
           haptic("light")
-          launcher("style")
+          launcher("page:-1")
         }
         Text {
-          text: "✦"
-          fontSize: 14
-          color: c_text_pri
+          text: "🎵"
+          fontSize: 15
         }
         Text {
-          text: "CUSTOMIZE"
+          text: "PLAYER ›"
           fontSize: 12
           bold: true
           color: c_text_pri

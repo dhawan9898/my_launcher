@@ -7,7 +7,7 @@ face "dhawan-media" {
     category: "media"
   }
 
-  page: 0
+  page: -1
   statusBar: false
 
   // --- Real-time Android Media & Audio Sources ---
@@ -64,12 +64,13 @@ face "dhawan-media" {
         align: center
 
         // All Apps Drawer Trigger
-        Box {
+        Row {
           padding: [8, 5]
           radius: 12
           background: c_card
           border: 1
           borderColor: c_border
+          align: center
           onTap: {
             haptic("light")
             launcher("drawer")
@@ -83,12 +84,13 @@ face "dhawan-media" {
         }
 
         // Home Navigation Trigger
-        Box {
+        Row {
           padding: [10, 5]
           radius: 12
           background: c_card
           border: 1
           borderColor: c_border
+          align: center
           onTap: launcher("page:0")
           Text {
             text: "HOME ›"
@@ -134,10 +136,12 @@ face "dhawan-media" {
           // Monochrome Stylized Audio Canvas Frame
           Column {
             align: center
+            justify: center
             gap: 10
             Text {
               text: isPlaying ? "🎵" : "🎧"
               fontSize: 48
+              align: center
             }
             Text {
               text: isPlaying ? "PLAYING AUDIO" : "AUDIO READY"
@@ -145,6 +149,7 @@ face "dhawan-media" {
               fontSize: 11
               bold: true
               letterSpacing: 2
+              align: center
               color: c_text_sec
             }
           }
@@ -166,12 +171,13 @@ face "dhawan-media" {
             weight: 1
             maxLines: 1
           }
-          Box {
+          Row {
             padding: [8, 4]
             radius: 8
             background: c_pill_off
             border: 1
             borderColor: c_border
+            align: center
             Text {
               text: sourceApp
               fontSize: 10
@@ -234,8 +240,11 @@ face "dhawan-media" {
           align: center
           onTap: media("action", "shuffle")
           Text {
-            text: "🔀"
-            fontSize: 16
+            text: "⇄"
+            fontSize: 20
+            bold: true
+            align: center
+            color: c_text_sec
           }
         }
 
@@ -251,6 +260,7 @@ face "dhawan-media" {
           Text {
             text: "⏮"
             fontSize: 22
+            align: center
             color: c_text_pri
           }
         }
@@ -265,6 +275,7 @@ face "dhawan-media" {
           Text {
             text: isPlaying ? "⏸" : "▶"
             fontSize: 28
+            align: center
             color: "#000000"
           }
         }
@@ -281,6 +292,7 @@ face "dhawan-media" {
           Text {
             text: "⏭"
             fontSize: 22
+            align: center
             color: c_text_pri
           }
         }
@@ -295,44 +307,44 @@ face "dhawan-media" {
           align: center
           onTap: media("action", "repeat")
           Text {
-            text: "🔁"
-            fontSize: 16
+            text: "↻"
+            fontSize: 20
+            bold: true
+            align: center
+            color: c_text_sec
           }
         }
       }
 
       // Output Device Switcher Pill
-      Box {
+      Row {
         fill: width
         padding: [12, 10]
         radius: 14
         background: c_pill_off
         border: 1
         borderColor: c_border
+        align: center
+        gap: 8
         onTap: settings("output")
-        Row {
-          fill: width
-          align: center
-          gap: 8
-          Text { text: "🎧"; fontSize: 13 }
-          Text {
-            text: "Audio Output:"
-            fontSize: 12
-            color: c_text_sec
-          }
-          Text {
-            text: outName
-            fontSize: 12
-            bold: true
-            color: c_text_pri
-            weight: 1
-          }
-          Text {
-            text: "SWITCH ›"
-            fontSize: 10
-            bold: true
-            color: c_text_sec
-          }
+        Text { text: "🎧"; fontSize: 13; align: center }
+        Text {
+          text: "Audio Output:"
+          fontSize: 12
+          color: c_text_sec
+        }
+        Text {
+          text: outName
+          fontSize: 12
+          bold: true
+          color: c_text_pri
+          weight: 1
+        }
+        Text {
+          text: "SWITCH ›"
+          fontSize: 10
+          bold: true
+          color: c_text_sec
         }
       }
     }
@@ -362,7 +374,7 @@ face "dhawan-media" {
         gap: 8
 
         // YouTube
-        Box {
+        Column {
           weight: 1
           padding: [10, 14]
           radius: 14
@@ -370,17 +382,26 @@ face "dhawan-media" {
           border: 1
           borderColor: c_border
           align: center
+          justify: center
+          gap: 6
           onTap: androidApp("com.google.android.youtube")
-          Column {
+          Text {
+            text: "▶"
+            fontSize: 20
             align: center
-            gap: 4
-            Text { text: "▶"; fontSize: 20; color: c_text_pri }
-            Text { text: "YouTube"; fontSize: 11; bold: true; color: c_text_pri }
+            color: c_text_pri
+          }
+          Text {
+            text: "YouTube"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
           }
         }
 
         // Spotify
-        Box {
+        Column {
           weight: 1
           padding: [10, 14]
           radius: 14
@@ -388,17 +409,26 @@ face "dhawan-media" {
           border: 1
           borderColor: c_border
           align: center
+          justify: center
+          gap: 6
           onTap: androidApp("com.spotify.music")
-          Column {
+          Text {
+            text: "●"
+            fontSize: 20
             align: center
-            gap: 4
-            Text { text: "●"; fontSize: 20; color: c_text_pri }
-            Text { text: "Spotify"; fontSize: 11; bold: true; color: c_text_pri }
+            color: c_text_pri
+          }
+          Text {
+            text: "Spotify"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
           }
         }
 
         // YouTube Music
-        Box {
+        Column {
           weight: 1
           padding: [10, 14]
           radius: 14
@@ -406,12 +436,21 @@ face "dhawan-media" {
           border: 1
           borderColor: c_border
           align: center
+          justify: center
+          gap: 6
           onTap: androidApp("com.google.android.apps.youtube.music")
-          Column {
+          Text {
+            text: "♫"
+            fontSize: 20
             align: center
-            gap: 4
-            Text { text: "♫"; fontSize: 20; color: c_text_pri }
-            Text { text: "YT Music"; fontSize: 11; bold: true; color: c_text_pri }
+            color: c_text_pri
+          }
+          Text {
+            text: "YT Music"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
           }
         }
       }
@@ -421,7 +460,7 @@ face "dhawan-media" {
         gap: 8
 
         // BookMyShow
-        Box {
+        Column {
           weight: 1
           padding: [10, 14]
           radius: 14
@@ -429,17 +468,25 @@ face "dhawan-media" {
           border: 1
           borderColor: c_border
           align: center
+          justify: center
+          gap: 6
           onTap: androidApp("com.bt.bms")
-          Column {
+          Text {
+            text: "🎟"
+            fontSize: 20
             align: center
-            gap: 4
-            Text { text: "🎟"; fontSize: 20 }
-            Text { text: "BookMyShow"; fontSize: 11; bold: true; color: c_text_pri }
+          }
+          Text {
+            text: "BookMyShow"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
           }
         }
 
         // Samsung Gallery / Video Player
-        Box {
+        Column {
           weight: 1
           padding: [10, 14]
           radius: 14
@@ -447,12 +494,20 @@ face "dhawan-media" {
           border: 1
           borderColor: c_border
           align: center
+          justify: center
+          gap: 6
           onTap: androidApp("com.sec.android.gallery3d")
-          Column {
+          Text {
+            text: "🖼"
+            fontSize: 20
             align: center
-            gap: 4
-            Text { text: "🖼"; fontSize: 20 }
-            Text { text: "Gallery"; fontSize: 11; bold: true; color: c_text_pri }
+          }
+          Text {
+            text: "Gallery"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
           }
         }
       }
@@ -504,46 +559,44 @@ face "dhawan-media" {
         gap: 8
 
         // Quick Equalizer / Dolby Atmos Settings Pill
-        Box {
+        Row {
           weight: 1
           padding: [10, 8]
           radius: 12
           background: c_pill_off
           border: 1
           borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
           onTap: settings("sound")
-          Row {
-            align: center
-            gap: 6
-            Text { text: "🎚"; fontSize: 12 }
-            Text {
-              text: "Equalizer & Dolby"
-              fontSize: 11
-              bold: true
-              color: c_text_pri
-            }
+          Text { text: "🎚"; fontSize: 12; align: center }
+          Text {
+            text: "Equalizer & Dolby"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
           }
         }
 
         // Quick Volume Settings Sheet
-        Box {
+        Row {
           weight: 1
           padding: [10, 8]
           radius: 12
           background: c_pill_off
           border: 1
           borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
           onTap: settings("volume")
-          Row {
-            align: center
-            gap: 6
-            Text { text: "🔊"; fontSize: 12 }
-            Text {
-              text: "Sound Settings"
-              fontSize: 11
-              bold: true
-              color: c_text_pri
-            }
+          Text { text: "🔊"; fontSize: 12; align: center }
+          Text {
+            text: "Sound Settings"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
           }
         }
       }

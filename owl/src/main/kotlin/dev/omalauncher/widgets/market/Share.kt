@@ -80,13 +80,15 @@ object Share {
         while (k < tokens.size) {
             val t = tokens[k]
             out.append(text, at, t.pos)
-            // `page: 2` at the top of the widget, as a statement of its own.
+            // `page: 2` or `page: -1` at the top of the widget, as a statement of its own.
+            val isMinusNum = tokens.getOrNull(k + 2)?.isP("-") == true && tokens.getOrNull(k + 3)?.type == T.Num
+            val isNum = tokens.getOrNull(k + 2)?.type == T.Num
             val placement =
                 depth == 1 && (t.isId("page") || t.isId("order")) && (t.nl || tokens[k - 1].let { it.isP("{") || it.isP(";") }) &&
-                    tokens.getOrNull(k + 1)?.isP(":") == true && tokens.getOrNull(k + 2)?.type == T.Num
+                    tokens.getOrNull(k + 1)?.isP(":") == true && (isNum || isMinusNum)
             if (placement) {
-                var last = k + 2
-                if (tokens.getOrNull(k + 3)?.let { it.isP(";") && !it.nl } == true) last++
+                var last = if (isMinusNum) k + 3 else k + 2
+                if (tokens.getOrNull(last + 1)?.let { it.isP(";") && !it.nl } == true) last++
                 at = tokens[last].let { it.pos + it.text.length }
                 // On a line of its own, the line goes too, with a comment at its end.
                 if (text.substring(text.lastIndexOf('\n', t.pos - 1) + 1, t.pos).isBlank()) {
