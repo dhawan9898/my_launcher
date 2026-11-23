@@ -393,7 +393,7 @@ internal fun PromptBar(
                             .clickable { AssistantBridge.openGemini(ctx, text.ifBlank { null }) }
                             .padding(horizontal = 7.dp, vertical = 5.dp)
                     ) {
-                        BasicText("Gemini", style = Mono.copy(color = Color(0xFF8AB4F8), fontSize = TextSize.Small))
+                        BasicText(text = "Gemini", style = Mono.copy(color = Color(0xFF8AB4F8), fontSize = TextSize.Small))
                     }
                     // Bixby chip
                     Box(
@@ -404,7 +404,7 @@ internal fun PromptBar(
                             .clickable { AssistantBridge.openBixby(ctx) }
                             .padding(horizontal = 7.dp, vertical = 5.dp)
                     ) {
-                        BasicText("Bixby", style = Mono.copy(color = Color(0xFF64B5F6), fontSize = TextSize.Small))
+                        BasicText(text = "Bixby", style = Mono.copy(color = Color(0xFF64B5F6), fontSize = TextSize.Small))
                     }
                 }
                 MicButton(

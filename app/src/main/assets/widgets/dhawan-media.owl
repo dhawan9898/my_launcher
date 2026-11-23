@@ -7,7 +7,7 @@ face "dhawan-media" {
     category: "media"
   }
 
-  page: -1
+  page: 0
   statusBar: false
 
   // --- Real-time Android Media & Audio Sources ---

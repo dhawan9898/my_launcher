@@ -7,7 +7,7 @@ face "dhawan-work" {
     category: "productivity"
   }
 
-  page: -2
+  page: 0
   statusBar: false
 
   // --- Real-time Sources ---
