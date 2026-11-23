@@ -59,18 +59,43 @@ face "dhawan-media" {
         color: c_text_sec
         weight: 1
       }
-      Box {
-        padding: [10, 5]
-        radius: 12
-        background: c_card
-        border: 1
-        borderColor: c_border
-        onTap: launcher("page:0")
-        Text {
-          text: "HOME ›"
-          fontSize: 11
-          bold: true
-          color: c_text_pri
+      Row {
+        gap: 6
+        align: center
+
+        // All Apps Drawer Trigger
+        Box {
+          padding: [8, 5]
+          radius: 12
+          background: c_card
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            launcher("drawer")
+          }
+          Text {
+            text: "⊞ APPS"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
+        }
+
+        // Home Navigation Trigger
+        Box {
+          padding: [10, 5]
+          radius: 12
+          background: c_card
+          border: 1
+          borderColor: c_border
+          onTap: launcher("page:0")
+          Text {
+            text: "HOME ›"
+            fontSize: 11
+            bold: true
+            color: c_text_pri
+          }
         }
       }
     }

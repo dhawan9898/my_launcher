@@ -57,26 +57,59 @@ face "dhawan-work" {
       Row {
         gap: 6
         align: center
-        padding: [8, 4]
-        radius: 12
-        background: c_pill_off
-        border: 1
-        borderColor: c_border
-        onTap: {
-          haptic("light")
-          launcher("page:0")
+
+        // All Apps Drawer Trigger
+        Row {
+          gap: 4
+          align: center
+          padding: [8, 4]
+          radius: 12
+          background: c_card
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            launcher("drawer")
+          }
+          Text {
+            text: "⊞"
+            fontSize: 10
+            color: c_text_sec
+          }
+          Text {
+            text: "APPS"
+            style: label
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
         }
-        Text {
-          text: "HOME"
-          style: label
-          fontSize: 11
-          bold: true
-          color: c_text_pri
-        }
-        Text {
-          text: "→"
-          fontSize: 11
-          color: c_text_sec
+
+        // Home Navigation Trigger
+        Row {
+          gap: 6
+          align: center
+          padding: [8, 4]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            launcher("page:0")
+          }
+          Text {
+            text: "HOME"
+            style: label
+            fontSize: 11
+            bold: true
+            color: c_text_pri
+          }
+          Text {
+            text: "→"
+            fontSize: 11
+            color: c_text_sec
+          }
         }
       }
     }

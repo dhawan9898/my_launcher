@@ -115,19 +115,47 @@ face "dhawan-home" {
         }
       }
 
-      // Settings gear action button
-      Box {
-        size: 42
-        radius: 21
-        background: c_card
-        border: 1
-        borderColor: c_border
+      // Top Action Buttons: All Apps & Settings
+      Row {
+        gap: 8
         align: center
-        onTap: launcher("settings")
-        Text {
-          text: "⚙"
-          fontSize: 18
-          color: c_text_pri
+
+        // All Apps Drawer Trigger
+        Box {
+          size: 40
+          radius: 20
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            launcher("drawer")
+          }
+          Text {
+            text: "⊞"
+            fontSize: 17
+            color: c_text_pri
+          }
+        }
+
+        // Settings & Customization Gear Trigger
+        Box {
+          size: 40
+          radius: 20
+          background: c_card
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            launcher("settings")
+          }
+          Text {
+            text: "⚙"
+            fontSize: 17
+            color: c_text_pri
+          }
         }
       }
     }
@@ -306,13 +334,30 @@ face "dhawan-home" {
           color: c_text_sec
           weight: 1
         }
-        Text {
-          text: cfg_customizing ? "DONE" : "CUSTOMIZE"
-          style: label
-          fontSize: 11
-          bold: true
-          color: c_text_pri
-          onTap: cfg_customizing = !cfg_customizing
+        Row {
+          gap: 6
+          align: center
+          padding: [8, 4]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          onTap: {
+            haptic("light")
+            launcher("style")
+          }
+          Text {
+            text: "✦"
+            fontSize: 10
+            color: c_text_pri
+          }
+          Text {
+            text: "CUSTOMIZE"
+            style: label
+            fontSize: 10
+            bold: true
+            color: c_text_pri
+          }
         }
       }
 
@@ -692,6 +737,70 @@ face "dhawan-home" {
               }
             }
           }
+        }
+      }
+    }
+
+    // ==========================================
+    // 6. QUICK LAUNCH DOCK (ALL APPS & CUSTOMIZE)
+    // ==========================================
+    Row {
+      fill: width
+      gap: 10
+
+      // All Apps Drawer Launcher Button
+      Row {
+        weight: 1
+        align: center
+        justify: center
+        gap: 8
+        padding: [14, 12]
+        radius: 14
+        background: c_pill_on
+        border: 0
+        onTap: {
+          haptic("medium")
+          launcher("drawer")
+        }
+        Text {
+          text: "⊞"
+          fontSize: 16
+          bold: true
+          color: "#000000"
+        }
+        Text {
+          text: "ALL APPS"
+          fontSize: 12
+          bold: true
+          color: "#000000"
+        }
+      }
+
+      // Customize Widgets & Home Style Button
+      Row {
+        weight: 1
+        align: center
+        justify: center
+        gap: 8
+        padding: [14, 12]
+        radius: 14
+        background: c_card
+        border: 1
+        borderColor: c_border
+        onTap: {
+          haptic("light")
+          launcher("style")
+        }
+        Text {
+          text: "✦"
+          fontSize: 14
+          color: c_text_pri
+        }
+        Text {
+          text: "CUSTOMIZE"
+          fontSize: 12
+          bold: true
+          color: c_text_pri
         }
       }
     }
