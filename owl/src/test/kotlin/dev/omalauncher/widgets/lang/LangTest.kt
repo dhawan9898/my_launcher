@@ -657,9 +657,9 @@ class LangTest {
         assertEquals(false, needs("requires { pacman: [] }\nText { text: \"x\" }"))
         val dir = java.io.File("../app/src/main/assets/widgets")
         fun bundled(name: String) = Compiler.compile(java.io.File(dir, name).readText()).needsLinux
-        assertEquals(false, bundled("10-today.owl"))
-        assertEquals(false, bundled("20-fetch.owl"))
-        assertEquals(true, bundled("45-terminal.owl"))
+        assertEquals(false, bundled("drawer.owl"))
+        assertEquals(false, bundled("keybar.owl"))
+        assertEquals(false, bundled("controls.owl"))
     }
 
     @Test fun persistOnStateAndHistory() {
@@ -1996,7 +1996,8 @@ class LangTest {
         assertTrue(widgetError("fmtTime(0, \"HH\", str(\"Mars/Olympus\") + tileWidth)").contains("unknown time zone"))
         assertTrue(compileError("widget {\n meta { owl: 8 }\n Text { text: fmtTime(0, \"HH\", \"UTC\") } }").contains("needs owl 9"))
         // Two values still need no owl 9.
-        assertEquals("00", text("fmtTime(0, \"mm\")", "meta { owl: 8 }"))
+        val expectedMm = java.time.Instant.ofEpochSecond(0).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("mm"))
+        assertEquals(expectedMm, text("fmtTime(0, \"mm\")", "meta { owl: 8 }"))
     }
 
     @Test fun fmtAgoIsShort() {

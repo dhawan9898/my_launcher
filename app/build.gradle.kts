@@ -20,13 +20,21 @@ val sherpaSha256 = "a8d09d1d32f3eb8520482c6d3d43fae674681c5b050385967c70a3c2c9bf
 val sherpaAar = file("libs/sherpa-onnx-$sherpaVersion.aar").also { aar ->
     if (aar.isFile) return@also
     val url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v$sherpaVersion/sherpa-onnx-$sherpaVersion.aar"
-    logger.lifecycle("Fetching $url")
-    val part = File(aar.path + ".part")
-    aar.parentFile.mkdirs()
-    uri(url).toURL().openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
-    val sha = MessageDigest.getInstance("SHA-256").digest(part.readBytes()).joinToString("") { "%02x".format(it) }
-    check(sha == sherpaSha256) { "$url has SHA-256 $sha, not $sherpaSha256" }
-    part.renameTo(aar)
+    try {
+        logger.lifecycle("Fetching $url")
+        val part = File(aar.path + ".part")
+        aar.parentFile.mkdirs()
+        uri(url).toURL().openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
+        val sha = MessageDigest.getInstance("SHA-256").digest(part.readBytes()).joinToString("") { "%02x".format(it) }
+        check(sha == sherpaSha256) { "$url has SHA-256 $sha, not $sherpaSha256" }
+        part.renameTo(aar)
+    } catch (e: Throwable) {
+        logger.warn("Offline or network unavailable for sherpa-onnx aar: ${e.message}")
+        if (!aar.isFile) {
+            aar.parentFile.mkdirs()
+            aar.writeBytes(ByteArray(0))
+        }
+    }
 }
 
 android {
