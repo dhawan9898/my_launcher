@@ -444,7 +444,7 @@ face "dhawan-home" {
           }
           Row {
             fill: width
-            justify: flexEnd
+            justify: end
             gap: 8
             Box {
               padding: [8, 14]
@@ -857,7 +857,7 @@ face "dhawan-home" {
               }
               Row {
                 fill: width
-                justify: flexEnd
+                justify: end
                 gap: 8
                 Box {
                   padding: [8, 14]

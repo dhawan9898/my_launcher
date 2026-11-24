@@ -397,7 +397,7 @@ face "dhawan-media" {
           }
           Row {
             fill: width
-            justify: flexEnd
+            justify: end
             gap: 8
             Box {
               padding: [8, 14]
