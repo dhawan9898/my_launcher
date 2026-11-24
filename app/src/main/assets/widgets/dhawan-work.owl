@@ -41,12 +41,14 @@ face "dhawan-work" {
 
   // Interactive Task List State (Persisted across restarts)
   state todos = [
-    "- [ ] Review lecture slides & assignments",
+    "- [ ] Review lecture slides & assignments [!]",
     "- [ ] Check work Slack & team PRs",
     "- [ ] Prepare project documentation",
     "- [ ] Complete study notes & reading",
     "- [x] Workspace environment setup"
   ] persist
+  state filterMode = "all" persist
+  state quickNote = "Review lecture slides & assignments\nFocus on algorithms and system design" persist
 
   let pendingCount = count(todos, t => !startsWith(t, "- [x] "))
 
@@ -651,7 +653,7 @@ face "dhawan-work" {
 
         Input {
           weight: 1
-          placeholder: "Add task or study note..."
+          placeholder: "Add task or study note... (tag [!] for urgent)"
           underline: false
           clear: true
           color: c_text_pri
@@ -683,6 +685,35 @@ face "dhawan-work" {
         }
       }
 
+      // Filter Chips: ALL, PENDING, DONE
+      Row {
+        fill: width
+        gap: 6
+        for mode in ["ALL", "PENDING", "DONE"] {
+          let mKey = lower(mode)
+          let isSel = filterMode == mKey
+          Row {
+            padding: [8, 4]
+            radius: 8
+            background: isSel ? c_pill_on : c_pill_off
+            border: isSel ? 0 : 1
+            borderColor: c_border
+            align: center
+            justify: center
+            onTap: {
+              haptic("light")
+              filterMode = mKey
+            }
+            Text {
+              text: mode
+              fontSize: 10
+              bold: isSel
+              color: isSel ? "#000000" : c_text_sec
+            }
+          }
+        }
+      }
+
       // Render Task Rows
       Column {
         fill: width
@@ -690,69 +721,86 @@ face "dhawan-work" {
 
         for item, i in todos {
           let isDone = startsWith(item, "- [x] ")
-          let taskTitle = isDone ? replace(item, "- [x] ", "") : replace(item, "- [ ] ", "")
+          let isVisible = filterMode == "all" ? true : (filterMode == "done" ? isDone : !isDone)
+          if isVisible {
+            let taskTitle = isDone ? replace(item, "- [x] ", "") : replace(item, "- [ ] ", "")
+            let isUrgent = contains(taskTitle, "[!]") || contains(lower(taskTitle), "urgent")
 
-          Row {
-            fill: width
-            align: center
-            gap: 10
-            padding: [10, 10]
-            radius: 12
-            background: isDone ? "#08080A" : c_pill_off
-            border: 1
-            borderColor: isDone ? "#1A1A1C" : c_border
-
-            // Checkbox button
             Row {
-              padding: [4, 4]
-              radius: 6
+              fill: width
+              align: center
+              gap: 10
+              padding: [10, 10]
+              radius: 12
+              background: isDone ? "#08080A" : c_pill_off
               border: 1
-              borderColor: isDone ? c_pill_on : c_border
-              background: isDone ? c_pill_on : c_bg
-              align: center
-              justify: center
-              onTap: {
-                haptic("light")
-                let toggled = isDone ? replace(item, "- [x] ", "- [ ] ") : replace(item, "- [ ] ", "- [x] ")
-                todos = set(todos, i, toggled)
-              }
-              Text {
-                text: isDone ? "✓" : "○"
-                fontSize: 12
-                bold: true
-                color: isDone ? "#000000" : c_text_sec
-              }
-            }
+              borderColor: isDone ? "#1A1A1C" : c_border
 
-            // Task text (Tap toggles state)
-            Text {
-              text: taskTitle
-              fontSize: 13
-              bold: !isDone
-              color: isDone ? c_text_sec : c_text_pri
-              weight: 1
-              maxLines: 2
-              onTap: {
-                haptic("light")
-                let toggled = isDone ? replace(item, "- [x] ", "- [ ] ") : replace(item, "- [ ] ", "- [x] ")
-                todos = set(todos, i, toggled)
+              // Checkbox button
+              Row {
+                padding: [4, 4]
+                radius: 6
+                border: 1
+                borderColor: isDone ? c_pill_on : c_border
+                background: isDone ? c_pill_on : c_bg
+                align: center
+                justify: center
+                onTap: {
+                  haptic("light")
+                  let toggled = isDone ? replace(item, "- [x] ", "- [ ] ") : replace(item, "- [ ] ", "- [x] ")
+                  todos = set(todos, i, toggled)
+                }
+                Text {
+                  text: isDone ? "✓" : "○"
+                  fontSize: 12
+                  bold: true
+                  color: isDone ? "#000000" : c_text_sec
+                }
               }
-            }
 
-            // Remove task action
-            Row {
-              padding: [4, 6]
-              radius: 6
-              align: center
-              justify: center
-              onTap: {
-                haptic("light")
-                todos = remove(todos, i)
+              // Urgent Badge
+              if isUrgent && !isDone {
+                Row {
+                  padding: [4, 2]
+                  radius: 4
+                  background: alpha("#FF5252", 0.2)
+                  border: 1
+                  borderColor: "#FF5252"
+                  align: center
+                  Text { text: "URGENT"; fontSize: 8; bold: true; color: "#FF5252" }
+                }
               }
+
+              // Task text (Tap toggles state)
               Text {
-                text: "✕"
-                fontSize: 11
-                color: c_text_sec
+                text: taskTitle
+                fontSize: 13
+                bold: !isDone
+                color: isDone ? c_text_sec : c_text_pri
+                weight: 1
+                maxLines: 2
+                onTap: {
+                  haptic("light")
+                  let toggled = isDone ? replace(item, "- [x] ", "- [ ] ") : replace(item, "- [ ] ", "- [x] ")
+                  todos = set(todos, i, toggled)
+                }
+              }
+
+              // Remove task action
+              Row {
+                padding: [4, 6]
+                radius: 6
+                align: center
+                justify: center
+                onTap: {
+                  haptic("light")
+                  todos = remove(todos, i)
+                }
+                Text {
+                  text: "✕"
+                  fontSize: 11
+                  color: c_text_sec
+                }
               }
             }
           }
@@ -810,6 +858,69 @@ face "dhawan-work" {
       }
     }
 
+    // =========================================================================
+    // SECTION 5: QUICK SCRATCHPAD & STUDY NOTES
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      frost: c_frost
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 10
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "SCRATCHPAD & QUICK NOTES"
+          style: label
+          fontSize: 11
+          color: c_text_pri
+          weight: 1
+        }
+        Row {
+          padding: [8, 4]
+          radius: 8
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          onTap: {
+            haptic("light")
+            copy(quickNote)
+            notify("My Launcher", "Notes copied to clipboard")
+          }
+          Text {
+            text: "COPY"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+          }
+        }
+      }
+
+      Row {
+        fill: width
+        padding: [10, 10]
+        radius: 12
+        background: c_pill_off
+        border: 1
+        borderColor: c_border
+        Input {
+          weight: 1
+          lines: 4
+          placeholder: "Type study notes, clipboard snippets or code ideas..."
+          underline: false
+          color: c_text_pri
+          fontSize: 13
+          text: quickNote
+          onChange: quickNote = value
+        }
+      }
+    }
 
     // =========================================================================
     // SECTION 6: QUICK DEV & TERMINAL TOOLS

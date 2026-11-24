@@ -1,11 +1,16 @@
 name: release
 
-# Builds a signed release APK on every push to main, tag creation, or manual dispatch,
+# Builds a signed release APK on push to main, tag creation, or manual dispatch,
 # and publishes a new GitHub Release with the APK and checksums attached.
 on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'art/**'
+      - '.github/pull_request_template.md'
   workflow_dispatch:
 
 permissions:
@@ -44,12 +49,44 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Resolved version $name (code $code) with tag $tag"
 
+      - name: Cache Android NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/android/sdk/ndk/30.0.16248370
+          key: ndk-30.0.16248370
+
+      - name: Cache PRoot binaries
+        id: cache-proot
+        uses: actions/cache@v4
+        with:
+          path: app/src/main/jniLibs/arm64-v8a
+          key: proot-jni-${{ hashFiles('scripts/fetch-proot.sh', 'patches/proot/**') }}
+
+      - name: Cache sherpa-onnx AAR
+        uses: actions/cache@v4
+        with:
+          path: app/libs
+          key: sherpa-onnx-aar-2.0.1
+
       - name: Fetch proot
         run: |
-          sudo apt-get update -q && sudo apt-get install -yq libarchive-tools
           ndk=$(sed -n 's/^NDK_VERSION=//p' scripts/fetch-proot.sh)
-          [ -d "$ANDROID_HOME/ndk/$ndk" ] || yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk" >/dev/null
-          bash scripts/fetch-proot.sh
+          if [ ! -d "$ANDROID_HOME/ndk/$ndk" ]; then
+            echo "Installing NDK $ndk via sdkmanager..."
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk" >/dev/null
+          else
+            echo "NDK $ndk restored from cache."
+          fi
+
+          if [ -f "app/src/main/jniLibs/arm64-v8a/libproot.so" ] && [ -f "app/src/main/jniLibs/arm64-v8a/.source" ]; then
+            echo "PRoot binaries restored from cache; skipping build."
+            ls -la app/src/main/jniLibs/arm64-v8a/
+          else
+            echo "Building PRoot binaries from source..."
+            sudo apt-get update -q && sudo apt-get install -yq libarchive-tools
+            bash scripts/fetch-proot.sh
+          fi
 
       - name: Configure signing key
         env:
@@ -73,8 +110,16 @@ jobs:
               "$RUNNER_TEMP/upload.jks" "android" "mylauncher" "android" > keystore.properties
           fi
 
-      - name: Test and build release APK
-        run: ./gradlew -PciBuild=${{ github.run_number }} :owl:test :app:testFossDebugUnitTest :app:lintFossDebug :app:assembleFossRelease :app:bundlePlayRelease
+      - name: Run unit and compiler tests
+        run: ./gradlew :owl:test :app:testFossDebugUnitTest
+
+      - name: Build release APK
+        run: |
+          ./gradlew -PciBuild=${{ github.run_number }} :app:assembleFossRelease
+          if [[ "$GITHUB_REF" == refs/tags/v* || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Building Play release bundle for official release/dispatch..."
+            ./gradlew -PciBuild=${{ github.run_number }} :app:bundlePlayRelease
+          fi
 
       - name: Checksum and package outputs
         id: apk

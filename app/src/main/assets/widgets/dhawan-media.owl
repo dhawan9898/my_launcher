@@ -817,6 +817,25 @@ face "dhawan-media" {
           bold: true
           color: c_text_pri
         }
+        Row {
+          gap: 6
+          align: center
+          for level in [0, 50, 100] {
+            let lvlStr = level == 0 ? "MUTE" : "${level}%"
+            Row {
+              padding: [6, 3]
+              radius: 6
+              background: c_pill_off
+              border: 1
+              borderColor: c_border
+              onTap: {
+                haptic("light")
+                volume(level)
+              }
+              Text { text: lvlStr; fontSize: 9; bold: true; color: c_text_sec }
+            }
+          }
+        }
       }
 
       Slider {

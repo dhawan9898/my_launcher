@@ -64,6 +64,7 @@ face "dhawan-home" {
   let condText = cur ? cur.weatherDesc[0].value : "No weather"
   let tempMax = day ? day.maxtempC : "—"
   let tempMin = day ? day.mintempC : "—"
+  let hourly = (day != null && day.hourly != null) ? day.hourly : []
 
   // Calendar week calculations (7 days: Monday to Sunday)
   let dayName = fmtTime(now, "E", null, "en")
@@ -717,6 +718,40 @@ face "dhawan-home" {
               bold: isToday
               align: center
               color: isToday ? "#000000" : c_text_pri
+            }
+          }
+        }
+      }
+
+      // 24-Hour Hourly Weather Forecast Strip (wttr.in)
+      if len(hourly) > 0 {
+        Row {
+          fill: width
+          scroll: true
+          gap: 6
+          padding: [2, 0]
+          for h in hourly {
+            let hTime = h.time == "0" ? "00:00" : (h.time == "300" ? "03:00" : (h.time == "600" ? "06:00" : (h.time == "900" ? "09:00" : (h.time == "1200" ? "12:00" : (h.time == "1500" ? "15:00" : (h.time == "1800" ? "18:00" : "21:00"))))))
+            let hTemp = h.tempC != null ? "${h.tempC}°" : "—"
+            let hDesc = lower(h.weatherDesc[0].value ?? "")
+            let hIcon = contains(hDesc, "rain") ? "🌧" : (contains(hDesc, "cloud") ? "☁" : (contains(hDesc, "sun") || contains(hDesc, "clear") ? "☀" : "🌤"))
+            let hRainChance = num(h.chanceofrain)
+            let hasRain = hRainChance > 20
+            Column {
+              align: center
+              justify: center
+              gap: 2
+              padding: [6, 8]
+              radius: 12
+              background: c_pill_off
+              border: 1
+              borderColor: c_border
+              Text { text: hTime; fontSize: 10; color: c_text_sec; align: center }
+              Text { text: hIcon; fontSize: 13; align: center }
+              Text { text: hTemp; fontSize: 11; bold: true; color: c_text_pri; align: center }
+              if hasRain {
+                Text { text: "${hRainChance}%"; fontSize: 9; bold: true; color: "#00E5FF"; align: center }
+              }
             }
           }
         }

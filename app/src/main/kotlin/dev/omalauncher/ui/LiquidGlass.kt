@@ -47,6 +47,8 @@ object LiquidGlassTokens {
     val GlassTintDark = Color(0x18FFFFFF)      // 10% white
     val GlassTintLight = Color(0x40FFFFFF)     // 25% white
     val GlassSurface = Color(0x12FFFFFF)      // 7% white
+    val HighContrastGlassTintDark = Color(0x28FFFFFF)  // 16% white for peak outdoor sunlight
+    val HighContrastGlassTintLight = Color(0x55FFFFFF) // 33% white for peak sunlight
 
     // Specular highlight gradient (light reflecting off glass bezel)
     val SpecularBorderDark = Brush.linearGradient(
