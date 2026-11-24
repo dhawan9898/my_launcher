@@ -1010,12 +1010,6 @@ class WidgetServices(
                 runCatching { context.startActivity(clockIntent) }
                 return
             }
-            // 4. Fallback to CATEGORY_APP_CLOCK
-            val mainClock = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CLOCK).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-            if (mainClock.resolveActivity(context.packageManager) != null) {
-                runCatching { context.startActivity(mainClock) }
-                return
-            }
         } else if (arg.equals("weather", ignoreCase = true)) {
             val weatherApp = apps.apps.firstOrNull {
                 it.component.packageName in listOf("com.sec.android.daemonapp", "com.samsung.android.weather", "com.google.android.apps.weather") ||

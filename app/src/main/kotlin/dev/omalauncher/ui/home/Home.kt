@@ -224,7 +224,7 @@ fun HomeScreen(
                 "updates", "check-updates" -> {
                     runtime.checkUpdates()
                     engine.checkUpdates()
-                    state.show(SettingsPage.None)
+                    state.show()
                 }
                 // "page:0": turns home to that page, a face left of page 1 too, as Super+1…9 does. What covers home
                 // closes first, as for Home pressed, so the page is seen: a widget's screen, the drawer, a panel.
