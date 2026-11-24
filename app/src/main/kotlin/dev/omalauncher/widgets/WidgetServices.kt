@@ -983,7 +983,45 @@ class WidgetServices(
      */
     private fun openAndroidApp(arg: String) {
         val apps = runtime.androidApps
-        val app = apps.apps.firstOrNull { it.key == arg } ?: apps.apps.firstOrNull { it.component.packageName == arg && it.profile == null }
+        if (arg.equals("clock", ignoreCase = true)) {
+            val clockIntent = Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            if (clockIntent.resolveActivity(context.packageManager) != null) {
+                runCatching { context.startActivity(clockIntent) }
+                return
+            }
+        } else if (arg.equals("weather", ignoreCase = true)) {
+            val weatherApp = apps.apps.firstOrNull {
+                it.component.packageName in listOf("com.sec.android.daemonapp", "com.samsung.android.weather", "com.google.android.apps.weather") ||
+                    it.name.contains("weather", ignoreCase = true) || it.label.contains("weather", ignoreCase = true)
+            }
+            if (weatherApp != null) {
+                runtime.usage.record("a:" + weatherApp.key)
+                apps.open(weatherApp)
+                return
+            }
+        } else if (arg.equals("camera", ignoreCase = true)) {
+            val camIntent = Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            if (camIntent.resolveActivity(context.packageManager) != null) {
+                runCatching { context.startActivity(camIntent) }
+                return
+            }
+        } else if (arg.equals("phone", ignoreCase = true) || arg.equals("dialer", ignoreCase = true)) {
+            val dialIntent = Intent(Intent.ACTION_DIAL).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            if (dialIntent.resolveActivity(context.packageManager) != null) {
+                runCatching { context.startActivity(dialIntent) }
+                return
+            }
+        } else if (arg.equals("messages", ignoreCase = true) || arg.equals("sms", ignoreCase = true)) {
+            val msgIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            if (msgIntent.resolveActivity(context.packageManager) != null) {
+                runCatching { context.startActivity(msgIntent) }
+                return
+            }
+        }
+        val app = apps.apps.firstOrNull { it.key == arg }
+            ?: apps.apps.firstOrNull { it.component.packageName == arg && it.profile == null }
+            ?: apps.apps.firstOrNull { it.name.equals(arg, ignoreCase = true) || it.label.equals(arg, ignoreCase = true) }
+            ?: apps.apps.firstOrNull { it.name.contains(arg, ignoreCase = true) || it.label.contains(arg, ignoreCase = true) || it.component.packageName.contains(arg, ignoreCase = true) }
         if (app != null) {
             runtime.usage.record("a:" + app.key)
             apps.open(app)

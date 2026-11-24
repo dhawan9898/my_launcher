@@ -147,6 +147,7 @@ face "dhawan-media" {
         borderColor: c_border
         align: center
         clip: true
+        onTap: media("open")
 
         if m != null && m.art != null {
           Image {
@@ -396,7 +397,7 @@ face "dhawan-media" {
         fill: width
         gap: 8
 
-        // YouTube
+        // yt-mini
         Column {
           weight: 1
           padding: [10, 14]
@@ -407,7 +408,7 @@ face "dhawan-media" {
           align: center
           justify: center
           gap: 6
-          onTap: androidApp("com.google.android.youtube")
+          onTap: androidApp("yt-mini")
           Text {
             text: "▶"
             fontSize: 20
@@ -415,7 +416,7 @@ face "dhawan-media" {
             color: c_text_pri
           }
           Text {
-            text: "YouTube"
+            text: "yt-mini"
             fontSize: 11
             bold: true
             align: center
@@ -423,7 +424,7 @@ face "dhawan-media" {
           }
         }
 
-        // Spotify
+        // CineStream
         Column {
           weight: 1
           padding: [10, 14]
@@ -434,15 +435,14 @@ face "dhawan-media" {
           align: center
           justify: center
           gap: 6
-          onTap: androidApp("com.spotify.music")
+          onTap: androidApp("cinestream")
           Text {
-            text: "●"
+            text: "🎬"
             fontSize: 20
             align: center
-            color: c_text_pri
           }
           Text {
-            text: "Spotify"
+            text: "CineStream"
             fontSize: 11
             bold: true
             align: center
@@ -450,7 +450,7 @@ face "dhawan-media" {
           }
         }
 
-        // YouTube Music
+        // AniStream
         Column {
           weight: 1
           padding: [10, 14]
@@ -461,15 +461,14 @@ face "dhawan-media" {
           align: center
           justify: center
           gap: 6
-          onTap: androidApp("com.google.android.apps.youtube.music")
+          onTap: androidApp("anistream")
           Text {
-            text: "♫"
+            text: "⛩"
             fontSize: 20
             align: center
-            color: c_text_pri
           }
           Text {
-            text: "YT Music"
+            text: "AniStream"
             fontSize: 11
             bold: true
             align: center
@@ -482,7 +481,7 @@ face "dhawan-media" {
         fill: width
         gap: 8
 
-        // BookMyShow
+        // Netflix
         Column {
           weight: 1
           padding: [10, 14]
@@ -493,14 +492,14 @@ face "dhawan-media" {
           align: center
           justify: center
           gap: 6
-          onTap: androidApp("com.bt.bms")
+          onTap: androidApp("com.netflix.mediaclient")
           Text {
-            text: "🎟"
+            text: "🍿"
             fontSize: 20
             align: center
           }
           Text {
-            text: "BookMyShow"
+            text: "Netflix"
             fontSize: 11
             bold: true
             align: center
@@ -508,7 +507,7 @@ face "dhawan-media" {
           }
         }
 
-        // Samsung Gallery / Video Player
+        // Gallery
         Column {
           weight: 1
           padding: [10, 14]
@@ -519,7 +518,7 @@ face "dhawan-media" {
           align: center
           justify: center
           gap: 6
-          onTap: androidApp("com.sec.android.gallery3d")
+          onTap: androidApp("gallery")
           Text {
             text: "🖼"
             fontSize: 20
@@ -527,6 +526,32 @@ face "dhawan-media" {
           }
           Text {
             text: "Gallery"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
+          }
+        }
+
+        // Photos
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("photos")
+          Text {
+            text: "📷"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Photos"
             fontSize: 11
             bold: true
             align: center

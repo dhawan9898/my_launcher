@@ -168,19 +168,14 @@ class Media(
                 ((it.position + drift) / 1000.0).coerceAtLeast(0.0)
             }
         val duration = m?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0 }?.let { it / 1000.0 }
-        val bitmap =
-            m?.let {
-                it.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
-                    ?: it.getBitmap(MediaMetadata.METADATA_KEY_ART)
-                    ?: it.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
-            }
+        val bitmap = extractBitmap(c, m)
         fun text(key: String) = m?.getString(key)?.takeIf { it.isNotBlank() }?.let(::Str) ?: Null
         // Every c.metadata is a fresh parcel with a fresh Bitmap, and this runs every second while playing:
         // keep the art for as long as the track (and the art's size) stays the same, so its id doesn't change
         // each tick and the widget doesn't swap, and briefly lose, the image.
         val artKey =
             bitmap?.let { b ->
-                val track = listOf(MediaMetadata.METADATA_KEY_MEDIA_ID, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_ARTIST, MediaMetadata.METADATA_KEY_ALBUM).map { m.getString(it) }
+                val track = listOf(MediaMetadata.METADATA_KEY_MEDIA_ID, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_ARTIST, MediaMetadata.METADATA_KEY_ALBUM).map { m?.getString(it) }
                 listOf(c.packageName, track, b.width, b.height)
             }
         if (artKey != artTrack) {
@@ -306,11 +301,10 @@ class Media(
         // A session left in an error state, or one that offers no play action, ignores play(): YouTube without
         // Premium keeps its session around with "Required premium account to perform action in background".
         // Open the app instead, where playing works, rather than a button that does nothing.
-        val canPlay = s?.state != PlaybackState.STATE_ERROR && (s == null || s.actions and (PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PLAY_PAUSE) != 0L)
         when (command) {
-            "play" -> if (canPlay) play(c) else open(c)
+            "play" -> t.play()
             "pause" -> t.pause()
-            "toggle" -> if (s?.state == PlaybackState.STATE_PLAYING) t.pause() else if (canPlay) play(c) else open(c)
+            "toggle" -> if (s?.state == PlaybackState.STATE_PLAYING) t.pause() else t.play()
             "next" -> t.skipToNext()
             "previous" -> t.skipToPrevious()
             // A session that can't seek ignores it, as Android's own seek bar does then.
@@ -322,17 +316,74 @@ class Media(
         }
     }
 
-    // An app paused for a while gets frozen by Android, and the play command waits until something thaws it:
-    // the button seems dead (Spotify after a long pause). If it hasn't started playing or loading shortly
-    // after, open the app, which thaws it so the waiting play goes through.
-    private fun play(c: MediaController) {
-        c.transportControls.play()
-        main.postDelayed({
-            if (c.playbackState?.state !in starting) open(c)
-        }, 2000)
+    private fun extractBitmap(c: MediaController, m: MediaMetadata?): Bitmap? {
+        if (m != null) {
+            val direct = m.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                ?: m.getBitmap(MediaMetadata.METADATA_KEY_ART)
+                ?: m.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+            if (direct != null) return direct
+
+            val uriStr = m.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+                ?: m.getString(MediaMetadata.METADATA_KEY_ART_URI)
+                ?: m.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
+            if (!uriStr.isNullOrBlank()) {
+                val fromUri = runCatching {
+                    val uri = android.net.Uri.parse(uriStr)
+                    when (uri.scheme) {
+                        "content", "file", "android.resource" -> {
+                            context.contentResolver.openInputStream(uri)?.use {
+                                android.graphics.BitmapFactory.decodeStream(it)
+                            }
+                        }
+                        "http", "https" -> {
+                            java.net.URL(uriStr).openStream().use {
+                                android.graphics.BitmapFactory.decodeStream(it)
+                            }
+                        }
+                        else -> null
+                    }
+                }.getOrNull()
+                if (fromUri != null) return fromUri
+            }
+        }
+
+        val notif = notificationOf(c)?.notification
+        if (notif != null) {
+            val extras = notif.extras
+            val fromExtras = if (Build.VERSION.SDK_INT >= 33) {
+                extras.getParcelable("android.picture", Bitmap::class.java)
+                    ?: extras.getParcelable("android.largeIcon.big", Bitmap::class.java)
+                    ?: extras.getParcelable(Notification.EXTRA_LARGE_ICON, Bitmap::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                (extras.getParcelable("android.picture") as? Bitmap)
+                    ?: (extras.getParcelable("android.largeIcon.big") as? Bitmap)
+                    ?: (extras.getParcelable(Notification.EXTRA_LARGE_ICON) as? Bitmap)
+            }
+            if (fromExtras != null) return fromExtras
+
+            val largeIcon = notif.getLargeIcon()
+            if (largeIcon != null) {
+                val drawable = runCatching { largeIcon.loadDrawable(context) }.getOrNull()
+                if (drawable is android.graphics.drawable.BitmapDrawable) {
+                    return drawable.bitmap
+                } else if (drawable != null && drawable.intrinsicWidth > 0 && drawable.intrinsicHeight > 0) {
+                    val bmp = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bmp)
+                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                    drawable.draw(canvas)
+                    return bmp
+                }
+            }
+        }
+        return null
     }
 
-    private val starting = setOf(PlaybackState.STATE_PLAYING, PlaybackState.STATE_BUFFERING, PlaybackState.STATE_CONNECTING, PlaybackState.STATE_SKIPPING_TO_NEXT, PlaybackState.STATE_SKIPPING_TO_PREVIOUS, PlaybackState.STATE_SKIPPING_TO_QUEUE_ITEM)
+    private fun notificationOf(c: MediaController): StatusBarNotification? {
+        val posted = MediaListener.connected?.let { runCatching { it.activeNotifications }.getOrNull() } ?: return null
+        return posted.firstOrNull { sessionOf(it.notification) == c.sessionToken }
+            ?: posted.firstOrNull { it.packageName == c.packageName }
+    }
 
     // The player's own screen first: the session's activity, else what tapping its media notification opens.
     // A browser's session belongs to the browser, so its launch intent opens a tab, while these bring up the
@@ -347,10 +398,8 @@ class Media(
     private fun send(intent: PendingIntent?) = intent != null && runCatching { intent.send(context, 0, null, null, null, null, allowLaunch()) }.isSuccess
 
     /** The tap action of the media notification [c]'s session posted, matched by its session token. */
-    private fun notificationIntent(c: MediaController): PendingIntent? {
-        val posted = MediaListener.connected?.let { runCatching { it.activeNotifications }.getOrNull() } ?: return null
-        return posted.firstOrNull { sessionOf(it.notification) == c.sessionToken }?.notification?.contentIntent
-    }
+    private fun notificationIntent(c: MediaController): PendingIntent? =
+        notificationOf(c)?.notification?.contentIntent
 
     // Another app's extras can fail to unparcel; such a notification just doesn't match.
     private fun sessionOf(n: Notification): MediaSession.Token? =

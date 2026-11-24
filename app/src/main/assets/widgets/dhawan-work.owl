@@ -54,7 +54,7 @@ face "dhawan-work" {
       fill: width
       align: center
       Text {
-        text: "WORK & UNI WORKSPACE"
+        text: "WORK SPACE"
         style: label
         fontSize: 12
         bold: true
@@ -127,7 +127,301 @@ face "dhawan-work" {
     }
 
     // =========================================================================
-    // SECTION 1: PRODUCTIVITY & FOCUS STATUS CARD
+    // SECTION 1: QUICK PAYMENTS & UPI (Top of Screen)
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "💳  QUICK UPI & PAYMENTS"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "INSTANT SCAN"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      // Hero Prominent Scan QR Action Button
+      Row {
+        fill: width
+        align: center
+        justify: center
+        gap: 10
+        padding: [14, 12]
+        radius: 14
+        background: c_pill_on
+        onTap: {
+          haptic("medium")
+          url("upi://pay")
+        }
+
+        Text {
+          text: "⛶"
+          fontSize: 20
+          bold: true
+          color: "#000000"
+        }
+        Column {
+          gap: 2
+          Text {
+            text: "SCAN ANY UPI QR CODE"
+            fontSize: 13
+            bold: true
+            color: "#000000"
+          }
+          Text {
+            text: "Direct camera scan • GPay / PhonePe / Paytm / BHIM"
+            fontSize: 10
+            color: "#444444"
+          }
+        }
+      }
+
+      // Fast UPI App Launchers
+      Row {
+        fill: width
+        gap: 8
+
+        // Google Pay
+        Column {
+          weight: 1
+          padding: [10, 12]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 4
+          onTap: androidApp("com.google.android.apps.nbu.paisa.user")
+          Text { text: "G"; fontSize: 16; bold: true; color: c_text_pri; align: center }
+          Text { text: "GPay"; fontSize: 10; bold: true; color: c_text_pri; align: center }
+        }
+
+        // PhonePe
+        Column {
+          weight: 1
+          padding: [10, 12]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 4
+          onTap: androidApp("com.phonepe.app")
+          Text { text: "पे"; fontSize: 16; bold: true; color: c_text_pri; align: center }
+          Text { text: "PhonePe"; fontSize: 10; bold: true; color: c_text_pri; align: center }
+        }
+
+        // Paytm
+        Column {
+          weight: 1
+          padding: [10, 12]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 4
+          onTap: androidApp("net.one97.paytm")
+          Text { text: "₹"; fontSize: 16; bold: true; color: c_text_pri; align: center }
+          Text { text: "Paytm"; fontSize: 10; bold: true; color: c_text_pri; align: center }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 2: WORKSPACE APPS (Outlook, Teams, Notes, GitHub, Docs)
+    // =========================================================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "💼  WORKSPACE APPS"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "WORK & STUDY"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      // Row 1: Outlook, Teams, Notes
+      Row {
+        fill: width
+        gap: 8
+
+        // Outlook
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.microsoft.office.outlook")
+          Text {
+            text: "📧"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Outlook"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
+          }
+        }
+
+        // Teams
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.microsoft.teams")
+          Text {
+            text: "👥"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Teams"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
+          }
+        }
+
+        // Notes
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.samsung.android.app.notes")
+          Text {
+            text: "📝"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Notes"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
+          }
+        }
+      }
+
+      // Row 2: GitHub, Docs
+      Row {
+        fill: width
+        gap: 8
+
+        // GitHub
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.github.android")
+          Text {
+            text: "🐙"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "GitHub"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
+          }
+        }
+
+        // Docs
+        Column {
+          weight: 1
+          padding: [10, 14]
+          radius: 14
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
+          align: center
+          justify: center
+          gap: 6
+          onTap: androidApp("com.google.android.apps.docs.editors.docs")
+          Text {
+            text: "📄"
+            fontSize: 20
+            align: center
+          }
+          Text {
+            text: "Docs"
+            fontSize: 11
+            bold: true
+            align: center
+            color: c_text_pri
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // SECTION 3: PRODUCTIVITY & FOCUS STATUS CARD
     // =========================================================================
     Column {
       fill: width
@@ -181,416 +475,6 @@ face "dhawan-work" {
             fontSize: 10
             bold: true
             color: isDnd ? "#000000" : c_text_pri
-          }
-        }
-      }
-    }
-
-    // =========================================================================
-    // SECTION 2: UNIVERSITY & ACADEMICS (Uni Apps)
-    // =========================================================================
-    Column {
-      fill: width
-      background: c_card
-      border: 1
-      borderColor: c_border
-      radius: 20
-      padding: 16
-      gap: 12
-
-      Row {
-        fill: width
-        align: center
-        Text {
-          text: "🎓  UNIVERSITY & ACADEMICS"
-          style: label
-          fontSize: 11
-          color: c_text_sec
-          weight: 1
-        }
-        Text {
-          text: "STUDY & COURSES"
-          style: label
-          fontSize: 10
-          color: c_text_sec
-        }
-      }
-
-      // Row 1: Notes & Docs
-      Row {
-        fill: width
-        gap: 8
-
-        // Samsung Notes
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.samsung.android.app.notes")
-          Text {
-            text: "📝"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Samsung Notes"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Notion
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("notion.id")
-          Text {
-            text: "📓"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Notion"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Google Drive
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.google.android.apps.docs")
-          Text {
-            text: "📁"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Drive"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-      }
-
-      // Row 2: Portal, PDF & Study Tools
-      Row {
-        fill: width
-        gap: 8
-
-        // Canvas / Student Portal
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.instructure.cstudent")
-          Text {
-            text: "🎓"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Canvas / Uni"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Adobe Acrobat / PDF Reader
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.adobe.reader")
-          Text {
-            text: "📄"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "PDF Reader"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Google Keep
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.google.android.keep")
-          Text {
-            text: "💡"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Keep"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-      }
-    }
-
-    // =========================================================================
-    // SECTION 3: WORK & COLLABORATION (Work Apps)
-    // =========================================================================
-    Column {
-      fill: width
-      background: c_card
-      border: 1
-      borderColor: c_border
-      radius: 20
-      padding: 16
-      gap: 12
-
-      Row {
-        fill: width
-        align: center
-        Text {
-          text: "💼  WORK & COLLABORATION"
-          style: label
-          fontSize: 11
-          color: c_text_sec
-          weight: 1
-        }
-        Text {
-          text: "OFFICE & TEAMS"
-          style: label
-          fontSize: 10
-          color: c_text_sec
-        }
-      }
-
-      // Row 1: Communications
-      Row {
-        fill: width
-        gap: 8
-
-        // Slack
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.Slack")
-          Text {
-            text: "💬"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Slack"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Microsoft Teams
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.microsoft.teams")
-          Text {
-            text: "👥"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Teams"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Gmail
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.google.android.gm")
-          Text {
-            text: "✉"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Gmail"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-      }
-
-      // Row 2: Dev & Docs
-      Row {
-        fill: width
-        gap: 8
-
-        // GitHub
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.github.android")
-          Text {
-            text: "🐙"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "GitHub"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Microsoft Outlook
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.microsoft.office.outlook")
-          Text {
-            text: "📬"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Outlook"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
-          }
-        }
-
-        // Google Docs / Office
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.google.android.apps.docs.editors.docs")
-          Text {
-            text: "📄"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Docs"
-            fontSize: 11
-            bold: true
-            align: center
-            maxLines: 1
-            color: c_text_pri
           }
         }
       }
@@ -792,126 +676,6 @@ face "dhawan-work" {
       }
     }
 
-    // =========================================================================
-    // SECTION 5: QUICK PAYMENTS & UPI
-    // =========================================================================
-    Column {
-      fill: width
-      background: c_card
-      border: 1
-      borderColor: c_border
-      radius: 20
-      padding: 16
-      gap: 12
-
-      Row {
-        fill: width
-        align: center
-        Text {
-          text: "💳  QUICK UPI & PAYMENTS"
-          style: label
-          fontSize: 11
-          color: c_text_sec
-          weight: 1
-        }
-        Text {
-          text: "INSTANT SCAN"
-          style: label
-          fontSize: 10
-          color: c_text_sec
-        }
-      }
-
-      // Hero Prominent Scan QR Action Button
-      Row {
-        fill: width
-        align: center
-        justify: center
-        gap: 10
-        padding: [14, 12]
-        radius: 14
-        background: c_pill_on
-        onTap: {
-          haptic("medium")
-          url("upi://pay")
-        }
-
-        Text {
-          text: "⛶"
-          fontSize: 20
-          bold: true
-          color: "#000000"
-        }
-        Column {
-          gap: 2
-          Text {
-            text: "SCAN ANY UPI QR CODE"
-            fontSize: 13
-            bold: true
-            color: "#000000"
-          }
-          Text {
-            text: "Direct camera scan • GPay / PhonePe / Paytm / BHIM"
-            fontSize: 10
-            color: "#444444"
-          }
-        }
-      }
-
-      // Fast UPI App Launchers
-      Row {
-        fill: width
-        gap: 8
-
-        // Google Pay
-        Column {
-          weight: 1
-          padding: [10, 12]
-          radius: 12
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 4
-          onTap: androidApp("com.google.android.apps.nbu.paisa.user")
-          Text { text: "G"; fontSize: 16; bold: true; color: c_text_pri; align: center }
-          Text { text: "GPay"; fontSize: 10; bold: true; color: c_text_pri; align: center }
-        }
-
-        // PhonePe
-        Column {
-          weight: 1
-          padding: [10, 12]
-          radius: 12
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 4
-          onTap: androidApp("com.phonepe.app")
-          Text { text: "पे"; fontSize: 16; bold: true; color: c_text_pri; align: center }
-          Text { text: "PhonePe"; fontSize: 10; bold: true; color: c_text_pri; align: center }
-        }
-
-        // Paytm
-        Column {
-          weight: 1
-          padding: [10, 12]
-          radius: 12
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 4
-          onTap: androidApp("net.one97.paytm")
-          Text { text: "₹"; fontSize: 16; bold: true; color: c_text_pri; align: center }
-          Text { text: "Paytm"; fontSize: 10; bold: true; color: c_text_pri; align: center }
-        }
-      }
-    }
 
     // =========================================================================
     // SECTION 6: QUICK DEV & TERMINAL TOOLS

@@ -25,13 +25,21 @@ class Alarm(
 
     fun value(): Value {
         val next = alarms.nextAlarmClock
+        val isUserAlarm = next?.let { info ->
+            val pkg = info.showIntent?.creatorPackage ?: ""
+            pkg.isEmpty() || pkg.contains("clock", ignoreCase = true) ||
+                pkg.contains("alarm", ignoreCase = true) ||
+                pkg.contains("sleep", ignoreCase = true) ||
+                pkg.contains("deskclock", ignoreCase = true)
+        } ?: false
+        val genuineAlarm = if (isUserAlarm) next else null
         return Obj(
             mapOf(
-                "set" to bool(next != null),
+                "set" to bool(genuineAlarm != null),
                 // Unix seconds, like clock, so fmtTime and `at` take it as is.
-                "time" to (next?.let { Num(Math.floor(it.triggerTime / 1000.0)) } ?: Null),
+                "time" to (genuineAlarm?.let { Num(Math.floor(it.triggerTime / 1000.0)) } ?: Null),
                 // The clock app that set it, when it says; androidApp(a.app) opens it.
-                "app" to (next?.showIntent?.creatorPackage?.let(::Str) ?: Null),
+                "app" to (genuineAlarm?.showIntent?.creatorPackage?.let(::Str) ?: Null),
             ),
         )
     }

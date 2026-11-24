@@ -19,6 +19,7 @@ face "dhawan-home" {
   source vol = android.volume
   source wx = http("https://wttr.in/Bengaluru?format=j1") every 30m timeout 10s json
   source notifs = android.notifications
+  source net = android.network every 2s
 
   // --- Vantablack High-Contrast Monochrome Design Tokens ---
   let c_bg = "#000000"
@@ -64,11 +65,23 @@ face "dhawan-home" {
   let storRatio = storTotal > 0 ? (storUsed / storTotal) : 0.60
   let storPct = round(storRatio * 100)
 
-  // Customizable Quick Toggles Configuration (Persisted across restarts, editable manually without agent)
-  state cfg_customizing = false
-  state show_add_catalog = false
-  state user_toggles = ["torch", "volume", "dnd", "wifi", "btop", "bluetooth"] persist
-  state toggle_cols = 3 persist
+  // Network speed computations
+  state netDown = 0
+  state netUp = 0
+  on net {
+    if old != null && value.rx >= old.rx && value.uptime > old.uptime {
+      let dt = value.uptime - old.uptime
+      if dt > 0 {
+        netDown = (value.rx - old.rx) / dt
+        netUp = (value.tx - old.tx) / dt
+      }
+    }
+  }
+
+  // Slide-to-dismiss notification states
+  state dragging = ""
+  state dragX = 0
+  state swiped = ""
 
   background: c_bg
   padding: [16, 20, 16, 20]
@@ -226,7 +239,10 @@ face "dhawan-home" {
         Column {
           weight: 1
           gap: 2
-          onTap: androidApp(alarm.app ?? "com.sec.android.app.clockpackage")
+          onTap: {
+            haptic("light")
+            androidApp("clock")
+          }
           Text {
             spans: [
               fmtTime(now, "HH"),
@@ -249,7 +265,10 @@ face "dhawan-home" {
         Column {
           align: end
           gap: 2
-          onTap: androidApp("com.sec.android.daemonapp")
+          onTap: {
+            haptic("light")
+            androidApp("weather")
+          }
           Text {
             text: "${tempC}°"
             fontSize: 34
@@ -322,7 +341,10 @@ face "dhawan-home" {
           borderColor: c_border
           align: center
           gap: 6
-          onTap: androidApp("com.sec.android.daemonapp")
+          onTap: {
+            haptic("light")
+            androidApp("weather")
+          }
           Text { text: "📍"; fontSize: 11; align: center }
           Text {
             text: "${condText} • ${place}"
@@ -344,7 +366,10 @@ face "dhawan-home" {
           borderColor: c_border
           align: center
           gap: 6
-          onTap: androidApp(alarm.app ?? "com.sec.android.app.clockpackage")
+          onTap: {
+            haptic("light")
+            androidApp("clock")
+          }
           Text { text: "⏰"; fontSize: 11; align: center }
           Text {
             text: alarm.set ? fmtTime(alarm.time, "EEE HH:mm") : "No alarm set"
@@ -359,7 +384,7 @@ face "dhawan-home" {
     }
 
     // ==========================================
-    // 3. QUICK TOGGLES & MEDIA SLIDER CARD
+    // 3. SAMSUNG-STYLE QUICK CONTROLS ICONS
     // ==========================================
     Column {
       fill: width
@@ -368,287 +393,204 @@ face "dhawan-home" {
       borderColor: c_border
       radius: 20
       padding: 16
-      gap: 12
+      gap: 14
 
-      // Header: Title & Customize Trigger
       Row {
         fill: width
         align: center
         Text {
-          text: cfg_customizing ? "CUSTOMIZE TOGGLES" : "QUICK CONTROLS"
+          text: "QUICK CONTROLS"
           style: label
           fontSize: 11
-          color: cfg_customizing ? c_text_pri : c_text_sec
-          bold: cfg_customizing
+          color: c_text_sec
           weight: 1
         }
-        Row {
-          gap: 6
+        Text {
+          text: "ONE UI STYLE"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      // Samsung Notification Panel Circular Icon Toggles
+      Row {
+        fill: width
+        align: center
+        justify: spaceEvenly
+
+        // 1. Torch
+        let torchOn = modes.torch == true
+        Column {
           align: center
-          padding: [8, 4]
-          radius: 8
-          background: cfg_customizing ? c_pill_on : c_pill_off
-          border: cfg_customizing ? 0 : 1
-          borderColor: c_border
-          onTap: {
-            haptic("light")
-            cfg_customizing = !cfg_customizing
-            if !cfg_customizing { show_add_catalog = false }
+          gap: 6
+          onTap: { haptic("light"); torch("toggle") }
+          Box {
+            size: 48
+            radius: 24
+            background: torchOn ? c_pill_on : c_pill_off
+            border: torchOn ? 0 : 1
+            borderColor: c_border
+            align: center
+            Text {
+              text: "🔦"
+              fontSize: 20
+              align: center
+            }
           }
           Text {
-            text: cfg_customizing ? "✓" : "✦"
-            fontSize: 10
-            color: cfg_customizing ? "#000000" : c_text_pri
-          }
-          Text {
-            text: cfg_customizing ? "DONE" : "CUSTOMIZE"
-            style: label
+            text: "Torch"
             fontSize: 10
             bold: true
-            color: cfg_customizing ? "#000000" : c_text_pri
-          }
-        }
-      }
-
-      // Customization Controls: Size Selector (Samsung Quick Panel 2/3/4 cols) & Add Catalog
-      if cfg_customizing {
-        Column {
-          fill: width
-          gap: 8
-          padding: [8, 8]
-          radius: 10
-          background: c_bg
-          border: 1
-          borderColor: c_border
-
-          // Size Switcher Row
-          Row {
-            fill: width
+            color: torchOn ? c_text_pri : c_text_sec
             align: center
-            gap: 6
+          }
+        }
+
+        // 2. Sound / Mute
+        let isMuted = vol.muted || (vol.level ?? 0) == 0
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); volume("toggle") }
+          Box {
+            size: 48
+            radius: 24
+            background: !isMuted ? c_pill_on : c_pill_off
+            border: !isMuted ? 0 : 1
+            borderColor: c_border
+            align: center
             Text {
-              text: "GRID SIZE:"
-              style: label
-              fontSize: 10
-              color: c_text_sec
-              weight: 1
-            }
-            Row {
-              padding: [6, 4]
-              radius: 6
-              background: toggle_cols == 2 ? c_pill_on : c_pill_off
-              onTap: { haptic("light"); toggle_cols = 2 }
-              Text {
-                text: "2 Large"
-                fontSize: 10
-                bold: true
-                color: toggle_cols == 2 ? "#000000" : c_text_sec
-              }
-            }
-            Row {
-              padding: [6, 4]
-              radius: 6
-              background: toggle_cols == 3 ? c_pill_on : c_pill_off
-              onTap: { haptic("light"); toggle_cols = 3 }
-              Text {
-                text: "3 Normal"
-                fontSize: 10
-                bold: true
-                color: toggle_cols == 3 ? "#000000" : c_text_sec
-              }
-            }
-            Row {
-              padding: [6, 4]
-              radius: 6
-              background: toggle_cols == 4 ? c_pill_on : c_pill_off
-              onTap: { haptic("light"); toggle_cols = 4 }
-              Text {
-                text: "4 Compact"
-                fontSize: 10
-                bold: true
-                color: toggle_cols == 4 ? "#000000" : c_text_sec
-              }
-            }
-          }
-
-          // Action Buttons: Add & Reset
-          Row {
-            fill: width
-            gap: 6
-            Row {
-              weight: 1
+              text: isMuted ? "🔇" : "🔊"
+              fontSize: 20
               align: center
-              justify: center
-              gap: 4
-              padding: [6, 6]
-              radius: 6
-              background: show_add_catalog ? c_pill_on : c_pill_off
-              border: 1
-              borderColor: c_border
-              onTap: { haptic("light"); show_add_catalog = !show_add_catalog }
-              Text {
-                text: show_add_catalog ? "▲ Close Menu" : "➕ Add New Toggle"
-                fontSize: 10
-                bold: true
-                color: show_add_catalog ? "#000000" : c_text_pri
-              }
-            }
-            Row {
-              padding: [6, 6]
-              radius: 6
-              background: c_pill_off
-              border: 1
-              borderColor: c_border
-              onTap: {
-                haptic("medium")
-                user_toggles = ["torch", "volume", "dnd", "wifi", "btop", "bluetooth"]
-                toggle_cols = 3
-              }
-              Text {
-                text: "↺ Reset"
-                fontSize: 10
-                color: c_text_sec
-              }
             }
           }
+          Text {
+            text: isMuted ? "Mute" : "Sound"
+            fontSize: 10
+            bold: true
+            color: !isMuted ? c_text_pri : c_text_sec
+            align: center
+          }
+        }
 
-          // Catalog of Available Toggles
-          if show_add_catalog {
-            Flow {
-              fill: width
-              gap: 6
-              for catId in ["torch", "volume", "dnd", "wifi", "btop", "bluetooth", "airplane", "dark", "rotate", "saver", "hotspot", "nfc"] {
-                Row {
-                  gap: 4
-                  align: center
-                  padding: [6, 4]
-                  radius: 6
-                  background: c_pill_off
-                  border: 1
-                  borderColor: c_border
-                  onTap: {
-                    haptic("light")
-                    user_toggles = user_toggles + [catId]
-                  }
-                  Text {
-                    text: "+ " + catId
-                    fontSize: 10
-                    bold: true
-                    color: c_text_pri
-                  }
-                }
-              }
+        // 3. DND
+        let dndOn = modes.dnd == true
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); dnd("toggle") }
+          Box {
+            size: 48
+            radius: 24
+            background: dndOn ? c_pill_on : c_pill_off
+            border: dndOn ? 0 : 1
+            borderColor: c_border
+            align: center
+            Text {
+              text: "🌙"
+              fontSize: 20
+              align: center
+              color: dndOn ? "#000000" : c_text_pri
             }
+          }
+          Text {
+            text: "DND"
+            fontSize: 10
+            bold: true
+            color: dndOn ? c_text_pri : c_text_sec
+            align: center
+          }
+        }
+
+        // 4. Wi-Fi
+        let wifiOn = modes.wifi == true
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); settings("wifi") }
+          Box {
+            size: 48
+            radius: 24
+            background: wifiOn ? c_pill_on : c_pill_off
+            border: wifiOn ? 0 : 1
+            borderColor: c_border
+            align: center
+            Text {
+              text: "📶"
+              fontSize: 20
+              align: center
+            }
+          }
+          Text {
+            text: "Wi-Fi"
+            fontSize: 10
+            bold: true
+            color: wifiOn ? c_text_pri : c_text_sec
+            align: center
+          }
+        }
+
+        // 5. Bluetooth
+        let btOn = modes.bluetooth == true
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); settings("bluetooth") }
+          Box {
+            size: 48
+            radius: 24
+            background: btOn ? c_pill_on : c_pill_off
+            border: btOn ? 0 : 1
+            borderColor: c_border
+            align: center
+            Text {
+              text: "ᛒ"
+              fontSize: 20
+              bold: true
+              align: center
+              color: btOn ? "#000000" : c_text_pri
+            }
+          }
+          Text {
+            text: "Bluetooth"
+            fontSize: 10
+            bold: true
+            color: btOn ? c_text_pri : c_text_sec
+            align: center
+          }
+        }
+
+        // 6. Terminal / btop
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("medium"); terminal() }
+          Box {
+            size: 48
+            radius: 24
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            align: center
+            Text {
+              text: "💻"
+              fontSize: 20
+              align: center
+            }
+          }
+          Text {
+            text: "Terminal"
+            fontSize: 10
+            bold: true
+            color: c_text_sec
+            align: center
           }
         }
       }
 
-      // Dynamic Auto-Resizing Grid of Toggles
-      Column {
-        fill: width
-        gap: 8
-
-        for rowItems, rowIdx in chunk(user_toggles, toggle_cols) {
-          Row {
-            fill: width
-            gap: 8
-
-            for tId, colIdx in rowItems {
-              let globalIdx = rowIdx * toggle_cols + colIdx
-              let isTorch = tId == "torch"
-              let isVol = tId == "volume"
-              let isDnd = tId == "dnd"
-              let isWifi = tId == "wifi"
-              let isBtop = tId == "btop"
-              let isBt = tId == "bluetooth"
-              let isAir = tId == "airplane"
-              let isDark = tId == "dark"
-              let isRot = tId == "rotate"
-              let isSav = tId == "saver"
-              let isHot = tId == "hotspot"
-              let isNfc = tId == "nfc"
-
-              let isActive = isTorch ? (modes.torch == true) : isVol ? (!vol.muted && (vol.level ?? 0) > 0) : isDnd ? (modes.dnd == true) : isWifi ? (modes.wifi == true) : isBt ? (modes.bluetooth == true) : isAir ? (modes.airplane == true) : isDark ? (modes.dark == true) : isRot ? (modes.rotate == true) : isSav ? (modes.saver == true) : false
-
-              let tIcon = isTorch ? "🔦" : isVol ? ((vol.level ?? 0) > 0 && !vol.muted ? "🔊" : "🔇") : isDnd ? "🌙" : isWifi ? "📶" : isBtop ? "💻" : isBt ? "ᛒ" : isAir ? "✈" : isDark ? "◐" : isRot ? "⟲" : isSav ? "⚡" : isHot ? "📡" : isNfc ? "📳" : "⚙"
-
-              let tLabel = isTorch ? (isActive ? "Torch On" : "Torch") : isVol ? (vol.muted ? "Muted" : "${vol.level ?? 0}%") : isDnd ? (isActive ? "DND On" : "DND") : isWifi ? (isActive ? "Wi-Fi On" : "Wi-Fi") : isBtop ? "btop" : isBt ? (isActive ? "BT On" : "Bluetooth") : isAir ? (isActive ? "Flight On" : "Airplane") : isDark ? (isActive ? "Dark On" : "Dark") : isRot ? (isActive ? "Auto-Rot" : "Rotate") : isSav ? (isActive ? "Saver On" : "Battery") : isHot ? "Hotspot" : isNfc ? "NFC" : tId
-
-              Column {
-                weight: 1
-                padding: toggle_cols == 2 ? [12, 12] : toggle_cols == 4 ? [8, 6] : [10, 10]
-                radius: 12
-                background: (!cfg_customizing && isActive) ? c_pill_on : c_pill_off
-                border: (!cfg_customizing && isActive) ? 0 : 1
-                borderColor: c_border
-                align: center
-                justify: center
-                gap: 4
-                onTap: {
-                  haptic("light")
-                  if cfg_customizing {
-                    user_toggles = remove(user_toggles, globalIdx)
-                  } else if isTorch {
-                    torch("toggle")
-                  } else if isVol {
-                    volume("toggle")
-                  } else if isDnd {
-                    dnd("toggle")
-                  } else if isWifi {
-                    settings("wifi")
-                  } else if isBtop {
-                    terminal("btop")
-                  } else if isBt {
-                    settings("bluetooth")
-                  } else if isAir {
-                    settings("airplane")
-                  } else if isDark {
-                    settings("dark")
-                  } else if isRot {
-                    settings("display")
-                  } else if isSav {
-                    settings("battery")
-                  } else if isHot {
-                    settings("internet")
-                  } else if isNfc {
-                    settings("nfc")
-                  }
-                }
-
-                Row {
-                  align: center
-                  justify: center
-                  gap: 4
-                  Text {
-                    text: tIcon
-                    fontSize: toggle_cols == 2 ? 18 : toggle_cols == 4 ? 13 : 15
-                    align: center
-                    color: (!cfg_customizing && isActive) ? "#000000" : c_text_pri
-                  }
-                  if cfg_customizing {
-                    Text {
-                      text: "✕"
-                      fontSize: 10
-                      bold: true
-                      color: "#FF453A"
-                    }
-                  }
-                }
-                Text {
-                  text: tLabel
-                  fontSize: toggle_cols == 2 ? 12 : toggle_cols == 4 ? 9 : 11
-                  bold: true
-                  align: center
-                  maxLines: 1
-                  color: (!cfg_customizing && isActive) ? "#000000" : c_text_pri
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Full-Width Media Volume Slider Bar
+      // Media Volume Slider Bar
       Column {
         fill: width
         gap: 4
@@ -672,7 +614,7 @@ face "dhawan-home" {
     }
 
     // ==========================================
-    // 4. CIRCULAR TELEMETRY RINGS CARD
+    // 4. FAVORITE APPS (WhatsApp, Instagram, Phone, Messages, Brave, Camera)
     // ==========================================
     Column {
       fill: width
@@ -681,117 +623,256 @@ face "dhawan-home" {
       borderColor: c_border
       radius: 20
       padding: 16
-      gap: 14
+      gap: 12
 
-      Text {
-        text: "DEVICE TELEMETRY"
-        style: label
-        fontSize: 11
-        color: c_text_sec
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "⚡  FAVORITE APPS"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "QUICK LAUNCH"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
       }
 
       Row {
         fill: width
         align: center
+        justify: spaceEvenly
+
+        // WhatsApp
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); androidApp("com.whatsapp") }
+          Box {
+            size: 46
+            radius: 14
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            align: center
+            Text { text: "💬"; fontSize: 22; align: center }
+          }
+          Text { text: "WhatsApp"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
+        }
+
+        // Instagram
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); androidApp("com.instagram.android") }
+          Box {
+            size: 46
+            radius: 14
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            align: center
+            Text { text: "📸"; fontSize: 22; align: center }
+          }
+          Text { text: "Instagram"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
+        }
+
+        // Phone
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); androidApp("phone") }
+          Box {
+            size: 46
+            radius: 14
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            align: center
+            Text { text: "📞"; fontSize: 22; align: center }
+          }
+          Text { text: "Phone"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
+        }
+
+        // Messages
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); androidApp("messages") }
+          Box {
+            size: 46
+            radius: 14
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            align: center
+            Text { text: "✉"; fontSize: 22; align: center }
+          }
+          Text { text: "Messages"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
+        }
+
+        // Brave Browser
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); androidApp("com.brave.browser") }
+          Box {
+            size: 46
+            radius: 14
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            align: center
+            Text { text: "🦁"; fontSize: 22; align: center }
+          }
+          Text { text: "Brave"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
+        }
+
+        // Camera
+        Column {
+          align: center
+          gap: 6
+          onTap: { haptic("light"); androidApp("camera") }
+          Box {
+            size: 46
+            radius: 14
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            align: center
+            Text { text: "📷"; fontSize: 22; align: center }
+          }
+          Text { text: "Camera"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
+        }
+      }
+    }
+
+    // ==========================================
+    // 5. COMPACT DEVICE & NETWORK TELEMETRY
+    // ==========================================
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text {
+          text: "DEVICE & NETWORK TELEMETRY"
+          style: label
+          fontSize: 11
+          color: c_text_sec
+          weight: 1
+        }
+        Text {
+          text: "REAL-TIME"
+          style: label
+          fontSize: 10
+          color: c_text_sec
+        }
+      }
+
+      // Compact Telemetry Metrics Row
+      Row {
+        fill: width
         gap: 8
 
-        // Battery Ring
-        Column {
+        // Battery Chip
+        Row {
           weight: 1
+          padding: [10, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
           align: center
-          justify: center
-          gap: 8
-          Box {
-            size: 68
-            align: center
-            Ring {
-              value: batLevel / 100
-              size: 68
-              thickness: 6
-              color: c_text_pri
-              track: c_pill_off
-            }
-            Text {
-              text: "${batLevel}%"
-              fontSize: 14
-              bold: true
-              align: center
-              color: c_text_pri
-            }
-          }
-          Text {
-            text: bat.charging ? "CHARGING" : "BATTERY"
-            fontSize: 10
-            bold: true
-            align: center
-            color: c_text_sec
+          gap: 6
+          Text { text: bat.charging ? "⚡" : "🔋"; fontSize: 16; align: center }
+          Column {
+            gap: 1
+            Text { text: "${batLevel}%"; fontSize: 12; bold: true; color: c_text_pri }
+            Text { text: bat.charging ? "Charging" : "Battery"; fontSize: 9; color: c_text_sec }
           }
         }
 
-        // Memory (RAM) Ring
-        Column {
+        // Network Speed (Download)
+        Row {
           weight: 1
+          padding: [10, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
           align: center
-          justify: center
-          gap: 8
-          Box {
-            size: 68
-            align: center
-            Ring {
-              value: memRatio
-              size: 68
-              thickness: 6
-              color: c_text_pri
-              track: c_pill_off
-            }
-            Text {
-              text: "${memPct}%"
-              fontSize: 14
-              bold: true
-              align: center
-              color: c_text_pri
-            }
-          }
-          Text {
-            text: "RAM"
-            fontSize: 10
-            bold: true
-            align: center
-            color: c_text_sec
+          gap: 6
+          Text { text: "📶"; fontSize: 16; align: center }
+          Column {
+            gap: 1
+            Text { text: "${fmtBytes(netDown)}/s"; fontSize: 12; bold: true; color: c_text_pri }
+            Text { text: "Down speed"; fontSize: 9; color: c_text_sec }
           }
         }
 
-        // Storage Ring
-        Column {
+        // RAM Memory Chip
+        Row {
           weight: 1
+          padding: [10, 8]
+          radius: 12
+          background: c_pill_off
+          border: 1
+          borderColor: c_border
           align: center
-          justify: center
-          gap: 8
-          Box {
-            size: 68
-            align: center
-            Ring {
-              value: storRatio
-              size: 68
-              thickness: 6
-              color: c_text_pri
-              track: c_pill_off
-            }
-            Text {
-              text: "${storPct}%"
-              fontSize: 14
-              bold: true
-              align: center
-              color: c_text_pri
-            }
+          gap: 6
+          Text { text: "🧠"; fontSize: 16; align: center }
+          Column {
+            gap: 1
+            Text { text: "${memPct}%"; fontSize: 12; bold: true; color: c_text_pri }
+            Text { text: "RAM used"; fontSize: 9; color: c_text_sec }
           }
-          Text {
-            text: "STORAGE"
-            fontSize: 10
-            bold: true
-            align: center
-            color: c_text_sec
-          }
+        }
+      }
+
+      // Secondary Telemetry Metrics Row
+      Row {
+        fill: width
+        gap: 8
+
+        // Storage Free
+        Row {
+          weight: 1
+          padding: [8, 8]
+          radius: 10
+          background: c_bg
+          border: 1
+          borderColor: c_border
+          align: center
+          gap: 6
+          Text { text: "💾"; fontSize: 12; align: center }
+          Text { text: "Storage: ${fmtBytes(storFree)} free"; fontSize: 10; color: c_text_sec; weight: 1 }
+        }
+
+        // Network Upload
+        Row {
+          weight: 1
+          padding: [8, 8]
+          radius: 10
+          background: c_bg
+          border: 1
+          borderColor: c_border
+          align: center
+          gap: 6
+          Text { text: "⬆"; fontSize: 12; align: center }
+          Text { text: "Upload: ${fmtBytes(netUp)}/s"; fontSize: 10; color: c_text_sec; weight: 1 }
         }
       }
     }
@@ -854,6 +935,24 @@ face "dhawan-home" {
               align: center
               gap: 10
               padding: [6, 4]
+              offset: [dragging == nItem.key ? dragX : 0, 0]
+              animate offset: spring(0.8, 400)
+              opacity: dragging == nItem.key ? max(0.2, 1 - abs(dragX) / 250) : 1
+              drag: horizontal
+              onDrag: {
+                if nItem.clearable {
+                  dragging = nItem.key
+                  dragX = dragX + dx
+                }
+              }
+              onDragEnd: {
+                if dragging == nItem.key && (abs(dragX) > 80 || abs(vx) > 800) {
+                  swiped = nItem.key
+                  notification("dismiss", nItem.key)
+                }
+                dragging = ""
+                dragX = 0
+              }
               onTap: notification("open", nItem.key)
 
               // App Icon / Glyph
