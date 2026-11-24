@@ -566,7 +566,7 @@ face "dhawan-home" {
         Column {
           align: center
           gap: 6
-          onTap: { haptic("medium"); terminal() }
+          onTap: { haptic("medium"); terminal("btop") }
           Box {
             size: 48
             radius: 24

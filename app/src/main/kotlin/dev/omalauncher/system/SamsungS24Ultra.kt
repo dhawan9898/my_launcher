@@ -27,7 +27,7 @@ object SamsungS24Ultra {
         // SM-S928 is Galaxy S24 Ultra (S928B, S928U, S9280, etc.)
         val isS24UModel = model.contains("SM-S928", ignoreCase = true) || model.contains("S24 Ultra", ignoreCase = true)
         val isSnapdragon8Gen3 = hardware.contains("qcom", ignoreCase = true) && 
-            (soc.contains("8650", ignoreCase = true) || hardware.contains("kalama", ignoreCase = true) || hardware.contains("pineapple", ignoreCase = true))
+            (soc.contains("8650", ignoreCase = true) || hardware.contains("pineapple", ignoreCase = true))
 
         (isSamsung && isS24UModel) || isSnapdragon8Gen3
     }
@@ -44,12 +44,14 @@ object SamsungS24Ultra {
      * - Enables LTPO-friendly frame pacing.
      */
     fun optimizeWindow(activity: Activity) {
+        // Other phones keep Android's own choice of mode.
+        if (!isS24Ultra) return
         try {
             val window = activity.window
             val layoutParams = window.attributes
 
             // Target 120Hz display refresh rate on supported displays
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            run {
                 @Suppress("DEPRECATION")
                 val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     activity.display
@@ -57,15 +59,19 @@ object SamsungS24Ultra {
                     activity.windowManager.defaultDisplay
                 }
                 val modes = display?.supportedModes.orEmpty()
+                // At the resolution the display runs now: the S24 Ultra has 120Hz modes at both FHD+ and QHD+,
+                // and taking the first one could switch the screen's resolution behind the user's setting.
+                val current = display?.mode
                 val mode120Hz = modes.firstOrNull { mode ->
                     val rate = mode.refreshRate
-                    rate >= 119.0f && rate <= 121.0f
+                    rate >= 119.0f && rate <= 121.0f &&
+                        (current == null || (mode.physicalWidth == current.physicalWidth && mode.physicalHeight == current.physicalHeight))
                 }
 
                 if (mode120Hz != null) {
                     layoutParams.preferredDisplayModeId = mode120Hz.modeId
                     Log.i(TAG, "Selected 120Hz display mode ${mode120Hz.modeId} for S24 Ultra")
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                } else {
                     // Fallback to preferredRefreshRate
                     layoutParams.preferredRefreshRate = 120.0f
                 }

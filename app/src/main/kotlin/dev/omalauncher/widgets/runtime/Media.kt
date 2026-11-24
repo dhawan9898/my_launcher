@@ -316,13 +316,32 @@ class Media(
         }
     }
 
-    private fun extractBitmap(c: MediaController, m: MediaMetadata?): Bitmap? {
-        if (m != null) {
-            val direct = m.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
-                ?: m.getBitmap(MediaMetadata.METADATA_KEY_ART)
-                ?: m.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
-            if (direct != null) return direct
+    /** What [fallbackArt] was looked up for (the app and track), and when; the lookup runs once per track, not every tick. */
+    private var fallbackTrack: List<Any?>? = null
+    private var fallbackAt = 0L
+    private var fallbackArt: Bitmap? = null
 
+    private fun extractBitmap(c: MediaController, m: MediaMetadata?): Bitmap? {
+        m?.let {
+            it.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                ?: it.getBitmap(MediaMetadata.METADATA_KEY_ART)
+                ?: it.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+        }?.let { return it }
+        // value() runs every second while playing, on the one media worker: decoding a URI or the notification's
+        // icon, or a download, each time would churn memory and stall every update behind the network.
+        val track = listOf(c.packageName) + listOf(MediaMetadata.METADATA_KEY_MEDIA_ID, MediaMetadata.METADATA_KEY_TITLE, MediaMetadata.METADATA_KEY_ARTIST, MediaMetadata.METADATA_KEY_ALBUM).map { m?.getString(it) }
+        val now = SystemClock.elapsedRealtime()
+        // Found art is kept for the track; none found is tried again after a while, as the notification can come later.
+        if (track != fallbackTrack || (fallbackArt == null && now - fallbackAt > FALLBACK_RETRY_MS)) {
+            fallbackTrack = track
+            fallbackAt = now
+            fallbackArt = runCatching { fallbackBitmap(c, m) }.onFailure { Log.w("widgets", "media art: ${it.message}") }.getOrNull()
+        }
+        return fallbackArt
+    }
+
+    private fun fallbackBitmap(c: MediaController, m: MediaMetadata?): Bitmap? {
+        if (m != null) {
             val uriStr = m.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
                 ?: m.getString(MediaMetadata.METADATA_KEY_ART_URI)
                 ?: m.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
@@ -330,15 +349,12 @@ class Media(
                 val fromUri = runCatching {
                     val uri = android.net.Uri.parse(uriStr)
                     when (uri.scheme) {
-                        "content", "file", "android.resource" -> {
-                            context.contentResolver.openInputStream(uri)?.use {
-                                android.graphics.BitmapFactory.decodeStream(it)
-                            }
-                        }
-                        "http", "https" -> {
-                            java.net.URL(uriStr).openStream().use {
-                                android.graphics.BitmapFactory.decodeStream(it)
-                            }
+                        "content", "file", "android.resource" -> decodeSampled { context.contentResolver.openInputStream(uri) }
+                        "http", "https" -> decodeSampled {
+                            (java.net.URL(uriStr).openConnection() as java.net.HttpURLConnection).apply {
+                                connectTimeout = 3000
+                                readTimeout = 3000
+                            }.inputStream
                         }
                         else -> null
                     }
@@ -368,7 +384,8 @@ class Media(
                 if (drawable is android.graphics.drawable.BitmapDrawable) {
                     return drawable.bitmap
                 } else if (drawable != null && drawable.intrinsicWidth > 0 && drawable.intrinsicHeight > 0) {
-                    val bmp = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+                    val scale = minOf(1f, ART_MAX_PX.toFloat() / maxOf(drawable.intrinsicWidth, drawable.intrinsicHeight))
+                    val bmp = Bitmap.createBitmap((drawable.intrinsicWidth * scale).toInt().coerceAtLeast(1), (drawable.intrinsicHeight * scale).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
                     val canvas = android.graphics.Canvas(bmp)
                     drawable.setBounds(0, 0, canvas.width, canvas.height)
                     drawable.draw(canvas)
@@ -377,6 +394,18 @@ class Media(
             }
         }
         return null
+    }
+
+    /** Decodes the stream [open] gives, twice opened: once for the size, then scaled down to about [ART_MAX_PX], so a huge cover can't run the launcher out of memory. */
+    private fun decodeSampled(open: () -> java.io.InputStream?): Bitmap? {
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        // With inJustDecodeBounds the decode returns null by design: only bounds' size says whether it worked.
+        (open() ?: return null).use { android.graphics.BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= ART_MAX_PX) sample *= 2
+        val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+        return open()?.use { android.graphics.BitmapFactory.decodeStream(it, null, options) }
     }
 
     private fun notificationOf(c: MediaController): StatusBarNotification? {
@@ -434,3 +463,9 @@ class Media(
     /** Looked up once each, since value() runs every second while playing. */
     private val labels = AppLabels(context)
 }
+
+/** The longest side album art found through a URI or the notification is decoded at. */
+private const val ART_MAX_PX = 512
+
+/** How long until a track with no art found is looked up again. */
+private const val FALLBACK_RETRY_MS = 10_000L

@@ -15,7 +15,8 @@ object AssistantBridge {
     private const val TAG = "AssistantBridge"
 
     // Package identifiers
-    private const val PKG_GEMINI = "com.google.android.apps.googleassistant"
+    private const val PKG_GEMINI = "com.google.android.apps.bard"
+    private const val PKG_ASSISTANT = "com.google.android.apps.googleassistant"
     private const val PKG_GOOGLE = "com.google.android.googlequicksearchbox"
     private const val PKG_BIXBY = "com.samsung.android.bixby.agent"
 
@@ -42,7 +43,7 @@ object AssistantBridge {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to launch Gemini via voice command, trying package launch", e)
-            openPackage(context, PKG_GEMINI) || openPackage(context, PKG_GOOGLE)
+            openPackage(context, PKG_GEMINI) || openPackage(context, PKG_ASSISTANT) || openPackage(context, PKG_GOOGLE)
         }
     }
 

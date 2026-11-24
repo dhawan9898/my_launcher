@@ -46,8 +46,8 @@ android {
         applicationId = "dev.omalauncher"
         minSdk = 29
         targetSdk = 37
-        versionCode = 47
-        versionName = "1.11.0"
+        versionCode = 48
+        versionName = "1.12.0"
         ndk { abiFilters += "arm64-v8a" }
     }
 
@@ -109,7 +109,16 @@ android {
 }
 
 // ExamplesTest reads the widget examples and the README from here, so editing them reruns it.
-tasks.withType<Test>().configureEach { inputs.dir("src/main/assets/widgets") }
+tasks.withType<Test>().configureEach {
+    inputs.dir("src/main/assets/widgets")
+    testLogging {
+        events("failed", "standardError", "standardOut")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+}
 
 // Gitignored, built by scripts/fetch-proot.sh. Without it a release still builds, but every Linux command fails.
 tasks.matching { it.name.matches(Regex("pre\\w*ReleaseBuild")) }.configureEach {
