@@ -204,7 +204,7 @@ class LauncherUpdates(
             val found =
                 (0 until releases.length()).mapNotNull { i ->
                     val r = releases.getJSONObject(i)
-                    if (r.optBoolean("draft")) return@mapNotNull null
+                    if (r.optBoolean("draft") || r.optBoolean("prerelease")) return@mapNotNull null
                     val tagName = r.optString("tag_name")
                     val m = TAG_VERSION.matchEntire(tagName) ?: return@mapNotNull null
                     val assets = r.optJSONArray("assets")

@@ -822,7 +822,7 @@ face "dhawan-home" {
                     haptic("medium")
                     city = trim(value)
                     editCity = false
-                    refresh
+                    refresh()
                   }
                 }
               }
@@ -844,7 +844,7 @@ face "dhawan-home" {
                       city = val
                       cityInput = val
                       editCity = false
-                      refresh
+                      refresh()
                     }
                     Text {
                       text: loc
@@ -877,7 +877,7 @@ face "dhawan-home" {
                     haptic("medium")
                     city = trim(cityInput)
                     editCity = false
-                    refresh
+                    refresh()
                   }
                   Text { text: "Save"; fontSize: 12; bold: true; color: "#000000" }
                 }
