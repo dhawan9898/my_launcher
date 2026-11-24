@@ -48,7 +48,7 @@ face "dhawan-work" {
 
   let pendingCount = count(todos, t => !startsWith(t, "- [x] "))
 
-  // --- Editable app tiles ---
+  // --- Editable app tiles & backup states ---
   // Each section's tiles, by section id: drawer keys once edited. Until then a section shows its defaults, given by
   // package name, which match that app's drawer key ("a:<package>/<activity>"), or by the app's name ("Phone").
   state tiles = {} persist
@@ -60,6 +60,9 @@ face "dhawan-work" {
   state query = ""
   // The node under the finger, for the press spring.
   state pressed = ""
+  // Backup / Import state
+  state importSec = false
+  state importText = ""
 
   let allApps = d.apps ?? []
   let picks = query == "" ? take(allApps, 60) : take(rank(allApps, query), 40)
@@ -203,15 +206,52 @@ face "dhawan-work" {
         Row {
           fill: width
           justify: spaceBetween
-          Text { text: "tap a tile to change its app"; fontSize: 10; color: c_text_sec }
-          Text {
-            text: "Reset"
-            style: label
-            fontSize: 10
-            color: c_text_sec
-            onTap: {
-              haptic("medium")
-              tiles = remove(tiles, sec)
+          align: center
+          Text { text: "tap tile to change • × to remove"; fontSize: 10; color: c_text_sec }
+          Row {
+            gap: 8
+            align: center
+            Text {
+              text: "Backup"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("light")
+                copy(toJson(tiles))
+                notify("My Launcher", "Tiles backup copied to clipboard")
+              }
+            }
+            Text {
+              text: "Import"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("light")
+                importSec = true
+                importText = ""
+              }
+            }
+            Text {
+              text: "Reset"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("medium")
+                tiles = remove(tiles, sec)
+              }
+            }
+            Text {
+              text: "Reset All"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("strong")
+                tiles = {}
+              }
             }
           }
         }
@@ -278,6 +318,103 @@ face "dhawan-work" {
                 }
                 Text { text: a.name; fontSize: 14; color: c_text_pri; weight: 1; maxLines: 1 }
               }
+            }
+          }
+        }
+      }
+
+      // The import backup popup, over everything.
+      Popup {
+        visible: importSec
+        onDismiss: {
+          importSec = false
+          importText = ""
+        }
+        width: screenWidth - 48
+        padding: 16
+        background: "#161618"
+        radius: 20
+        border: 1
+        borderColor: c_rim
+        Column {
+          fill: width
+          gap: 12
+          Row {
+            fill: width
+            justify: spaceBetween
+            align: center
+            Text { text: "RESTORE TILES BACKUP"; style: label; fontSize: 11; color: c_text_sec }
+            Text {
+              text: "✕"
+              fontSize: 14
+              color: c_text_sec
+              onTap: {
+                importSec = false
+                importText = ""
+              }
+            }
+          }
+          Text {
+            text: "Paste your exported tiles JSON configuration below:"
+            fontSize: 12
+            color: c_text_sec
+          }
+          Row {
+            fill: width
+            align: center
+            padding: [10, 8]
+            radius: 12
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            Input {
+              weight: 1
+              placeholder: "Paste JSON here..."
+              underline: false
+              color: c_text_pri
+              fontSize: 13
+              onChange: importText = value
+              onSubmit: {
+                haptic("medium")
+                let p = parseJson(value)
+                if p != null {
+                  tiles = p
+                  importSec = false
+                  importText = ""
+                  notify("My Launcher", "Tiles configuration restored")
+                }
+              }
+            }
+          }
+          Row {
+            fill: width
+            justify: flexEnd
+            gap: 8
+            Box {
+              padding: [8, 14]
+              radius: 10
+              background: c_pill_off
+              onTap: {
+                importSec = false
+                importText = ""
+              }
+              Text { text: "Cancel"; fontSize: 12; color: c_text_sec }
+            }
+            Box {
+              padding: [8, 14]
+              radius: 10
+              background: c_pill_on
+              onTap: {
+                haptic("medium")
+                let p = parseJson(importText)
+                if p != null {
+                  tiles = p
+                  importSec = false
+                  importText = ""
+                  notify("My Launcher", "Tiles configuration restored")
+                }
+              }
+              Text { text: "Apply"; fontSize: 12; bold: true; color: "#000000" }
             }
           }
         }
@@ -624,14 +761,29 @@ face "dhawan-work" {
         justify: spaceBetween
         align: center
 
-        Text {
-          text: "Clear completed"
-          style: label
-          fontSize: 10
-          color: c_text_sec
-          onTap: {
-            haptic("medium")
-            todos = filter(todos, t => !startsWith(t, "- [x] "))
+        Row {
+          gap: 12
+          align: center
+          Text {
+            text: "Clear completed"
+            style: label
+            fontSize: 10
+            color: c_text_sec
+            onTap: {
+              haptic("medium")
+              todos = filter(todos, t => !startsWith(t, "- [x] "))
+            }
+          }
+          Text {
+            text: "Backup tasks"
+            style: label
+            fontSize: 10
+            color: c_text_sec
+            onTap: {
+              haptic("light")
+              copy(toJson(todos))
+              notify("My Launcher", "Tasks backup copied to clipboard")
+            }
           }
         }
 

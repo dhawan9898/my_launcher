@@ -17,7 +17,12 @@ face "dhawan-home" {
   source alarm = android.alarm
   source modes = android.modes
   source vol = android.volume
-  source wx = http("https://wttr.in/Bengaluru?format=j1") every 30m timeout 10s json
+
+  // --- Dynamic Weather Location (empty string "" defaults to wttr.in Auto IP/GPS location) ---
+  state city = "Bengaluru" persist
+  state editCity = false
+  state cityInput = ""
+  source wx = http("https://wttr.in/${enc(city)}?format=j1") every 30m timeout 10s json
   source notifs = android.notifications
   source net = android.network every 2s
   // Every app on the phone (Android, Linux and owl apps), for the editable favourites and the app picker.
@@ -51,7 +56,8 @@ face "dhawan-home" {
   // Weather extraction
   let cur = wx.current_condition[0]
   let day = wx.weather[0]
-  let place = wx.nearest_area[0].areaName[0].value ?? "Bengaluru"
+  let detectedArea = wx.nearest_area[0].areaName[0].value
+  let place = city != "" ? (detectedArea ?? city) : (detectedArea ?? "Current Location")
   let tempC = cur ? cur.temp_C : "—"
   let condText = cur ? cur.weatherDesc[0].value : "No weather"
   let tempMax = day ? day.maxtempC : "—"
@@ -93,7 +99,10 @@ face "dhawan-home" {
   state dragX = 0
   state swiped = ""
 
-  // --- Editable app tiles ---
+  // Quick Controls expanded state
+  state showMoreControls = false persist
+
+  // --- Editable app tiles & backup states ---
   // Each section's tiles, by section id: drawer keys once edited. Until then a section shows its defaults, given by
   // package name, which match that app's drawer key ("a:<package>/<activity>"), or by the app's name ("Phone").
   state tiles = {} persist
@@ -105,6 +114,9 @@ face "dhawan-home" {
   state query = ""
   // The node under the finger, for the press spring.
   state pressed = ""
+  // Backup / Import state
+  state importSec = false
+  state importText = ""
 
   let allApps = d.apps ?? []
   let picks = query == "" ? take(allApps, 60) : take(rank(allApps, query), 40)
@@ -248,15 +260,52 @@ face "dhawan-home" {
         Row {
           fill: width
           justify: spaceBetween
-          Text { text: "tap a tile to change its app"; fontSize: 10; color: c_text_sec }
-          Text {
-            text: "Reset"
-            style: label
-            fontSize: 10
-            color: c_text_sec
-            onTap: {
-              haptic("medium")
-              tiles = remove(tiles, sec)
+          align: center
+          Text { text: "tap tile to change • × to remove"; fontSize: 10; color: c_text_sec }
+          Row {
+            gap: 8
+            align: center
+            Text {
+              text: "Backup"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("light")
+                copy(toJson(tiles))
+                notify("My Launcher", "Tiles backup copied to clipboard")
+              }
+            }
+            Text {
+              text: "Import"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("light")
+                importSec = true
+                importText = ""
+              }
+            }
+            Text {
+              text: "Reset"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("medium")
+                tiles = remove(tiles, sec)
+              }
+            }
+            Text {
+              text: "Reset All"
+              style: label
+              fontSize: 10
+              color: c_text_sec
+              onTap: {
+                haptic("strong")
+                tiles = {}
+              }
             }
           }
         }
@@ -323,6 +372,103 @@ face "dhawan-home" {
                 }
                 Text { text: a.name; fontSize: 14; color: c_text_pri; weight: 1; maxLines: 1 }
               }
+            }
+          }
+        }
+      }
+
+      // The import backup popup, over everything.
+      Popup {
+        visible: importSec
+        onDismiss: {
+          importSec = false
+          importText = ""
+        }
+        width: screenWidth - 48
+        padding: 16
+        background: "#161618"
+        radius: 20
+        border: 1
+        borderColor: c_rim
+        Column {
+          fill: width
+          gap: 12
+          Row {
+            fill: width
+            justify: spaceBetween
+            align: center
+            Text { text: "RESTORE TILES BACKUP"; style: label; fontSize: 11; color: c_text_sec }
+            Text {
+              text: "✕"
+              fontSize: 14
+              color: c_text_sec
+              onTap: {
+                importSec = false
+                importText = ""
+              }
+            }
+          }
+          Text {
+            text: "Paste your exported tiles JSON configuration below:"
+            fontSize: 12
+            color: c_text_sec
+          }
+          Row {
+            fill: width
+            align: center
+            padding: [10, 8]
+            radius: 12
+            background: c_pill_off
+            border: 1
+            borderColor: c_border
+            Input {
+              weight: 1
+              placeholder: "Paste JSON here..."
+              underline: false
+              color: c_text_pri
+              fontSize: 13
+              onChange: importText = value
+              onSubmit: {
+                haptic("medium")
+                let p = parseJson(value)
+                if p != null {
+                  tiles = p
+                  importSec = false
+                  importText = ""
+                  notify("My Launcher", "Tiles configuration restored")
+                }
+              }
+            }
+          }
+          Row {
+            fill: width
+            justify: flexEnd
+            gap: 8
+            Box {
+              padding: [8, 14]
+              radius: 10
+              background: c_pill_off
+              onTap: {
+                importSec = false
+                importText = ""
+              }
+              Text { text: "Cancel"; fontSize: 12; color: c_text_sec }
+            }
+            Box {
+              padding: [8, 14]
+              radius: 10
+              background: c_pill_on
+              onTap: {
+                haptic("medium")
+                let p = parseJson(importText)
+                if p != null {
+                  tiles = p
+                  importSec = false
+                  importText = ""
+                  notify("My Launcher", "Tiles configuration restored")
+                }
+              }
+              Text { text: "Apply"; fontSize: 12; bold: true; color: "#000000" }
             }
           }
         }
@@ -578,7 +724,7 @@ face "dhawan-home" {
         fill: width
         gap: 8
 
-        // Location & Condition Pill
+        // Location & Condition Pill (Tap opens weather app, long-press/tap edit icon configures city)
         Row {
           weight: 1
           padding: [10, 8]
@@ -592,6 +738,11 @@ face "dhawan-home" {
             haptic("light")
             androidApp("weather")
           }
+          onLongPress: {
+            haptic("medium")
+            cityInput = city
+            editCity = true
+          }
           Text { text: "⌖"; fontSize: 11; align: center }
           Text {
             text: "${condText} • ${place}"
@@ -600,6 +751,135 @@ face "dhawan-home" {
             maxLines: 1
             weight: 1
             color: c_text_pri
+          }
+          Text {
+            text: "✎"
+            fontSize: 10
+            color: c_text_sec
+            onTap: {
+              haptic("light")
+              cityInput = city
+              editCity = true
+            }
+          }
+
+          // City configuration popup
+          Popup {
+            visible: editCity
+            onDismiss: {
+              editCity = false
+              cityInput = ""
+            }
+            width: screenWidth - 48
+            padding: 16
+            background: "#161618"
+            radius: 20
+            border: 1
+            borderColor: c_rim
+            Column {
+              fill: width
+              gap: 12
+              Row {
+                fill: width
+                justify: spaceBetween
+                align: center
+                Text { text: "WEATHER LOCATION"; style: label; fontSize: 11; color: c_text_sec }
+                Text {
+                  text: "✕"
+                  fontSize: 14
+                  color: c_text_sec
+                  onTap: {
+                    editCity = false
+                    cityInput = ""
+                  }
+                }
+              }
+              Text {
+                text: "Enter city name or choose a preset (empty for Auto):"
+                fontSize: 12
+                color: c_text_sec
+              }
+              Row {
+                fill: width
+                align: center
+                padding: [10, 8]
+                radius: 12
+                background: c_pill_off
+                border: 1
+                borderColor: c_border
+                Input {
+                  weight: 1
+                  placeholder: "Leave blank for Auto IP/GPS..."
+                  underline: false
+                  color: c_text_pri
+                  fontSize: 13
+                  text: cityInput
+                  onChange: cityInput = value
+                  onSubmit: {
+                    haptic("medium")
+                    city = trim(value)
+                    editCity = false
+                    refresh
+                  }
+                }
+              }
+              Row {
+                fill: width
+                wrap: true
+                gap: 6
+                for loc in ["Auto (IP)", "Bengaluru", "Delhi", "Mumbai", "London", "San Francisco"] {
+                  let val = loc == "Auto (IP)" ? "" : loc
+                  let isSelected = city == val
+                  Box {
+                    padding: [6, 10]
+                    radius: 10
+                    background: isSelected ? c_pill_on : c_pill_off
+                    border: isSelected ? 0 : 1
+                    borderColor: c_border
+                    onTap: {
+                      haptic("light")
+                      city = val
+                      cityInput = val
+                      editCity = false
+                      refresh
+                    }
+                    Text {
+                      text: loc
+                      fontSize: 11
+                      bold: isSelected
+                      color: isSelected ? "#000000" : c_text_pri
+                    }
+                  }
+                }
+              }
+              Row {
+                fill: width
+                justify: flexEnd
+                gap: 8
+                Box {
+                  padding: [8, 14]
+                  radius: 10
+                  background: c_pill_off
+                  onTap: {
+                    editCity = false
+                    cityInput = ""
+                  }
+                  Text { text: "Cancel"; fontSize: 12; color: c_text_sec }
+                }
+                Box {
+                  padding: [8, 14]
+                  radius: 10
+                  background: c_pill_on
+                  onTap: {
+                    haptic("medium")
+                    city = trim(cityInput)
+                    editCity = false
+                    refresh
+                  }
+                  Text { text: "Save"; fontSize: 12; bold: true; color: "#000000" }
+                }
+              }
+            }
           }
         }
 
@@ -653,10 +933,14 @@ face "dhawan-home" {
           weight: 1
         }
         Text {
-          text: "ONE UI STYLE"
+          text: showMoreControls ? "▲ LESS" : "▼ MORE"
           style: label
           fontSize: 10
           color: c_text_sec
+          onTap: {
+            haptic("light")
+            showMoreControls = !showMoreControls
+          }
         }
       }
 
@@ -841,6 +1125,162 @@ face "dhawan-home" {
             bold: true
             color: c_text_sec
             align: center
+          }
+        }
+      }
+
+      // Secondary Quick Controls (Expanded row: Airplane, Dark Theme, Battery Saver, Audio Output Switcher, Internet Panel)
+      if showMoreControls {
+        Row {
+          fill: width
+          align: center
+          justify: spaceEvenly
+
+          // 7. Airplane Mode
+          let airOn = modes.airplane == true
+          Column {
+            align: center
+            gap: 6
+            onTap: { haptic("light"); settings("airplane") }
+            Box {
+              size: 48
+              radius: 24
+              background: airOn ? c_pill_on : c_pill_off
+              border: airOn ? 0 : 1
+              borderColor: c_border
+              align: center
+              Text {
+                text: "✈"
+                fontSize: 18
+                align: center
+                color: airOn ? "#000000" : c_text_pri
+              }
+            }
+            Text {
+              text: "Airplane"
+              fontSize: 10
+              bold: true
+              color: airOn ? c_text_pri : c_text_sec
+              align: center
+            }
+          }
+
+          // 8. Dark Mode
+          let darkOn = modes.dark == true
+          Column {
+            align: center
+            gap: 6
+            onTap: { haptic("light"); settings("dark") }
+            Box {
+              size: 48
+              radius: 24
+              background: darkOn ? c_pill_on : c_pill_off
+              border: darkOn ? 0 : 1
+              borderColor: c_border
+              align: center
+              Text {
+                text: "◐"
+                fontSize: 18
+                bold: true
+                align: center
+                color: darkOn ? "#000000" : c_text_pri
+              }
+            }
+            Text {
+              text: "Theme"
+              fontSize: 10
+              bold: true
+              color: darkOn ? c_text_pri : c_text_sec
+              align: center
+            }
+          }
+
+          // 9. Battery Saver
+          let saverOn = modes.saver == true
+          Column {
+            align: center
+            gap: 6
+            onTap: { haptic("light"); settings("battery") }
+            Box {
+              size: 48
+              radius: 24
+              background: saverOn ? c_pill_on : c_pill_off
+              border: saverOn ? 0 : 1
+              borderColor: c_border
+              align: center
+              Text {
+                text: "⚡"
+                fontSize: 18
+                bold: true
+                align: center
+                color: saverOn ? "#000000" : c_text_pri
+              }
+            }
+            Text {
+              text: "Saver"
+              fontSize: 10
+              bold: true
+              color: saverOn ? c_text_pri : c_text_sec
+              align: center
+            }
+          }
+
+          // 10. Output Switcher
+          Column {
+            align: center
+            gap: 6
+            onTap: { haptic("light"); settings("output") }
+            Box {
+              size: 48
+              radius: 24
+              background: c_pill_off
+              border: 1
+              borderColor: c_border
+              align: center
+              Text {
+                text: "⎋"
+                fontSize: 18
+                bold: true
+                align: center
+                color: c_text_pri
+              }
+            }
+            Text {
+              text: "Output"
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+              align: center
+            }
+          }
+
+          // 11. Network / Internet
+          Column {
+            align: center
+            gap: 6
+            onTap: { haptic("light"); settings("internet") }
+            Box {
+              size: 48
+              radius: 24
+              background: c_pill_off
+              border: 1
+              borderColor: c_border
+              align: center
+              Text {
+                text: "☵"
+                fontSize: 18
+                bold: true
+                align: center
+                color: c_text_pri
+              }
+            }
+            Text {
+              text: "Network"
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+              align: center
+            }
           }
         }
       }
