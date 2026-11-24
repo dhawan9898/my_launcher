@@ -1,0 +1,1 @@
+1.11.0. Updated media controls without launching apps, added rich previews for YouTube and YT Music, refined Work Space layout with top UPI quick actions, Samsung One UI style quick controls, slidable notifications, favorite apps row, and real-time network telemetry.

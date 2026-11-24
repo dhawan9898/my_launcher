@@ -992,7 +992,7 @@ class WidgetServices(
         } else if (arg.equals("weather", ignoreCase = true)) {
             val weatherApp = apps.apps.firstOrNull {
                 it.component.packageName in listOf("com.sec.android.daemonapp", "com.samsung.android.weather", "com.google.android.apps.weather") ||
-                    it.name.contains("weather", ignoreCase = true) || it.label.contains("weather", ignoreCase = true)
+                    it.label.contains("weather", ignoreCase = true)
             }
             if (weatherApp != null) {
                 runtime.usage.record("a:" + weatherApp.key)
@@ -1020,8 +1020,8 @@ class WidgetServices(
         }
         val app = apps.apps.firstOrNull { it.key == arg }
             ?: apps.apps.firstOrNull { it.component.packageName == arg && it.profile == null }
-            ?: apps.apps.firstOrNull { it.name.equals(arg, ignoreCase = true) || it.label.equals(arg, ignoreCase = true) }
-            ?: apps.apps.firstOrNull { it.name.contains(arg, ignoreCase = true) || it.label.contains(arg, ignoreCase = true) || it.component.packageName.contains(arg, ignoreCase = true) }
+            ?: apps.apps.firstOrNull { it.label.equals(arg, ignoreCase = true) }
+            ?: apps.apps.firstOrNull { it.label.contains(arg, ignoreCase = true) || it.component.packageName.contains(arg, ignoreCase = true) }
         if (app != null) {
             runtime.usage.record("a:" + app.key)
             apps.open(app)
