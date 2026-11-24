@@ -65,7 +65,8 @@ class LauncherUpdates(
 
     /** Asks GitHub unless it was asked within the hour; [force] asks anyway. */
     fun check(force: Boolean = false) {
-        if (fromFdroid || checking || downloading != null) return
+        if (checking || downloading != null) return
+        if (!force && fromFdroid) return
         if (!force && System.currentTimeMillis() - checkedAt < CHECK_EVERY) return
         checking = true
         scope.launch {
@@ -187,13 +188,12 @@ class LauncherUpdates(
         /** F-Droid and the clients of its repositories. */
         val FDROID_CLIENTS = setOf("org.fdroid.fdroid", "org.fdroid.basic", "com.looker.droidify", "com.machiav3lli.fdroid")
 
-        /** v1.12.0, or v1.12.0-build.11 as CI tags each build from main. */
-        private val TAG_VERSION = Regex("""v(\d+(?:\.\d+)*)(?:-build\.(\d+))?""")
+        /** v1.12.0, 1.12.0, or v1.12.0-build.11 / ci.11 as CI tags each build from main. */
+        private val TAG_VERSION = Regex("""v?(\d+(?:\.\d+)*)(?:[-._](?:build|ci)\.?(\d+))?""")
 
         /**
          * The newest release in GitHub's releases [json] that's newer than [current] built by CI build [build]:
-         * a higher version, or the same version from a later build. Only the app's own releases count (tags like
-         * v1.5.0, not drafts or pre-releases, nor others like mesa-zink-…).
+         * a higher version, or the same version from a later build.
          */
         fun newerRelease(
             json: String,
@@ -204,12 +204,13 @@ class LauncherUpdates(
             val found =
                 (0 until releases.length()).mapNotNull { i ->
                     val r = releases.getJSONObject(i)
-                    if (r.optBoolean("draft") || r.optBoolean("prerelease")) return@mapNotNull null
-                    val m = TAG_VERSION.matchEntire(r.optString("tag_name")) ?: return@mapNotNull null
+                    if (r.optBoolean("draft")) return@mapNotNull null
+                    val tagName = r.optString("tag_name")
+                    val m = TAG_VERSION.matchEntire(tagName) ?: return@mapNotNull null
                     val assets = r.optJSONArray("assets")
                     val apk =
                         assets?.let { a ->
-                            (0 until a.length()).map { a.getJSONObject(it) }.firstOrNull { it.optString("name").endsWith(".apk") }?.optString("browser_download_url")
+                            (0 until a.length()).map { a.getJSONObject(it) }.firstOrNull { it.optString("name").endsWith(".apk", ignoreCase = true) }?.optString("browser_download_url")
                         }
                     Release(m.groupValues[1], m.groupValues[2].toIntOrNull() ?: 0, r.optString("html_url"), apk?.takeIf { it.isNotEmpty() })
                 }

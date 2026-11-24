@@ -24,6 +24,22 @@ fun Context.registerNotExported(
     return receiver
 }
 
+/** Registers [onReceive] for system-wide broadcasts matching [filter]; unregister what it returns. */
+fun Context.registerExported(
+    filter: IntentFilter,
+    onReceive: (Intent) -> Unit,
+): BroadcastReceiver {
+    val receiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(
+                c: Context,
+                intent: Intent,
+            ) = onReceive(intent)
+        }
+    if (Build.VERSION.SDK_INT >= 33) registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED) else registerReceiver(receiver, filter)
+    return receiver
+}
+
 /** A content observer that calls [changed] on [handler]'s thread for every change it's told of; register it with a content resolver. */
 fun changeObserver(
     handler: Handler,

@@ -13,25 +13,28 @@ face "dhawan-media" {
   // --- Real-time Android Media & Audio Sources ---
   source m = android.media
   source vol = android.volume
+  source modes = android.modes
   source now = clock every 1s
   // Every app on the phone (Android, Linux and owl apps), for the editable app tiles and the app picker.
   source d = android.drawer
 
-  // --- Vantablack High-Contrast Monochrome Design Tokens ---
-  let c_bg = "#000000"
-  let c_card = "#121214"
-  let c_border = "#262629"
-  let c_pill_off = "#1C1C1E"
-  let c_pill_on = "#FFFFFF"
-  let c_text_pri = "#FFFFFF"
-  let c_text_sec = "#8E8E93"
+  // --- Responsive Transparent Glass & Frosted Glass Design Tokens (Dark / Light) ---
+  let isDark = modes.dark != false
+  let c_bg = isDark ? "#000000" : "#F4F4F6"
+  let c_card = isDark ? alpha("#18181B", 0.65) : alpha("#FFFFFF", 0.70)
+  let c_border = isDark ? alpha("#FFFFFF", 0.12) : alpha("#000000", 0.08)
+  let c_pill_off = isDark ? alpha("#27272A", 0.60) : alpha("#E4E4E7", 0.75)
+  let c_pill_on = isDark ? "#FFFFFF" : "#09090B"
+  let c_text_pri = isDark ? "#FFFFFF" : "#09090B"
+  let c_text_sec = isDark ? "#A1A1AA" : "#71717A"
 
   // --- Liquid glass: a pane lit from the top left, a bright rim, and a springy press ---
-  let c_glass = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.11), alpha("#FFFFFF", 0.035)])
-  let c_glass_edit = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.18), alpha("#FFFFFF", 0.06)])
-  let c_rim = alpha("#FFFFFF", 0.16)
-  let c_rim_edit = alpha("#FFFFFF", 0.45)
+  let c_glass = isDark ? linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.12), alpha("#FFFFFF", 0.035)]) : linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.85), alpha("#FFFFFF", 0.50)])
+  let c_glass_edit = isDark ? linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.20), alpha("#FFFFFF", 0.08)]) : linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.95), alpha("#FFFFFF", 0.65)])
+  let c_rim = isDark ? alpha("#FFFFFF", 0.16) : alpha("#000000", 0.12)
+  let c_rim_edit = isDark ? alpha("#FFFFFF", 0.45) : alpha("#000000", 0.30)
   let c_clear = alpha("#000000", 0)
+  let c_frost = 24
 
   // Playback state extraction
   let isPlaying = m != null && m.playing == true
@@ -154,6 +157,7 @@ face "dhawan-media" {
     Column {
       fill: width
       background: c_card
+      frost: c_frost
       border: 1
       borderColor: c_border
       radius: 20
@@ -519,6 +523,7 @@ face "dhawan-media" {
     Column {
       fill: width
       background: c_card
+      frost: c_frost
       border: 1
       borderColor: c_border
       radius: 24
@@ -789,6 +794,7 @@ face "dhawan-media" {
     Column {
       fill: width
       background: c_card
+      frost: c_frost
       border: 1
       borderColor: c_border
       radius: 20

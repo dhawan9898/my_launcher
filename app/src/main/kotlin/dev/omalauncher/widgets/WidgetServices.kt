@@ -984,9 +984,36 @@ class WidgetServices(
     private fun openAndroidApp(arg: String) {
         val apps = runtime.androidApps
         if (arg.equals("clock", ignoreCase = true)) {
+            // 1. Prioritize Samsung Clock app directly for Galaxy S24 Ultra / One UI
+            val samsungClockIntent = context.packageManager.getLaunchIntentForPackage("com.sec.android.app.clockpackage")
+            if (samsungClockIntent != null) {
+                samsungClockIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                runCatching { context.startActivity(samsungClockIntent) }
+                return
+            }
+            // 2. Look for installed Clock apps in drawer/apps list
+            val clockApp = apps.apps.firstOrNull {
+                it.component.packageName in listOf(
+                    "com.sec.android.app.clockpackage",
+                    "com.google.android.deskclock",
+                    "com.android.deskclock",
+                ) || it.label.contains("clock", ignoreCase = true)
+            }
+            if (clockApp != null) {
+                runtime.usage.record("a:" + clockApp.key)
+                apps.open(clockApp)
+                return
+            }
+            // 3. Fallback to standard ACTION_SHOW_ALARMS
             val clockIntent = Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             if (clockIntent.resolveActivity(context.packageManager) != null) {
                 runCatching { context.startActivity(clockIntent) }
+                return
+            }
+            // 4. Fallback to CATEGORY_APP_CLOCK
+            val mainClock = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CLOCK).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            if (mainClock.resolveActivity(context.packageManager) != null) {
+                runCatching { context.startActivity(mainClock) }
                 return
             }
         } else if (arg.equals("weather", ignoreCase = true)) {

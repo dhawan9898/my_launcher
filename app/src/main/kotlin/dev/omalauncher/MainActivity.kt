@@ -173,13 +173,12 @@ class MainActivity : ComponentActivity() {
      */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        val nothingOpen =
-            state.drawer.value == 0f && state.pulled == null && !state.homeMenuOpen && state.shared == null &&
-                state.sharing == null && runtime.widgets.openScreen == null && state.editing == null
-        if (!away && nothingOpen && intent.hasCategory(Intent.CATEGORY_HOME)) state.onHomeAgain()
+        val isHome = intent.hasCategory(Intent.CATEGORY_HOME) || intent.action == Intent.ACTION_MAIN
+        if (isHome) {
+            state.onHomeAgain()
+        }
         state.close()
-        // The swipe-down panel only for a Home pressed on home: coming back from an app opened from it keeps it.
-        if (!away) state.closePull()
+        state.closePull()
         state.closeScreens()
         runtime.widgets.openScreen = null
         state.editing = null

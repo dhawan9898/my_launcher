@@ -28,21 +28,23 @@ face "dhawan-home" {
   // Every app on the phone (Android, Linux and owl apps), for the editable favourites and the app picker.
   source d = android.drawer
 
-  // --- Vantablack High-Contrast Monochrome Design Tokens ---
-  let c_bg = "#000000"
-  let c_card = "#121214"
-  let c_border = "#262629"
-  let c_pill_off = "#1C1C1E"
-  let c_pill_on = "#FFFFFF"
-  let c_text_pri = "#FFFFFF"
-  let c_text_sec = "#8E8E93"
+  // --- Responsive Transparent Glass & Frosted Glass Design Tokens (Dark / Light) ---
+  let isDark = modes.dark != false
+  let c_bg = isDark ? "#000000" : "#F4F4F6"
+  let c_card = isDark ? alpha("#18181B", 0.65) : alpha("#FFFFFF", 0.70)
+  let c_border = isDark ? alpha("#FFFFFF", 0.12) : alpha("#000000", 0.08)
+  let c_pill_off = isDark ? alpha("#27272A", 0.60) : alpha("#E4E4E7", 0.75)
+  let c_pill_on = isDark ? "#FFFFFF" : "#09090B"
+  let c_text_pri = isDark ? "#FFFFFF" : "#09090B"
+  let c_text_sec = isDark ? "#A1A1AA" : "#71717A"
 
   // --- Liquid glass: a pane lit from the top left, a bright rim, and a springy press ---
-  let c_glass = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.11), alpha("#FFFFFF", 0.035)])
-  let c_glass_edit = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.18), alpha("#FFFFFF", 0.06)])
-  let c_rim = alpha("#FFFFFF", 0.16)
-  let c_rim_edit = alpha("#FFFFFF", 0.45)
+  let c_glass = isDark ? linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.12), alpha("#FFFFFF", 0.035)]) : linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.85), alpha("#FFFFFF", 0.50)])
+  let c_glass_edit = isDark ? linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.20), alpha("#FFFFFF", 0.08)]) : linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.95), alpha("#FFFFFF", 0.65)])
+  let c_rim = isDark ? alpha("#FFFFFF", 0.16) : alpha("#000000", 0.12)
+  let c_rim_edit = isDark ? alpha("#FFFFFF", 0.45) : alpha("#000000", 0.30)
   let c_clear = alpha("#000000", 0)
+  let c_frost = 24
 
   // --- Dynamic Greeting & Time Computations ---
   let hr = num(fmtTime(now, "H"))
@@ -617,6 +619,7 @@ face "dhawan-home" {
     Column {
       fill: width
       background: c_card
+      frost: c_frost
       border: 1
       borderColor: c_border
       radius: 20
@@ -899,7 +902,7 @@ face "dhawan-home" {
           }
           Text { text: "⏰"; fontSize: 11; align: center }
           Text {
-            text: alarm.set ? fmtTime(alarm.time, "EEE HH:mm") : "No alarm set"
+            text: alarm.set ? (alarm.time != null ? fmtTime(alarm.time, "EEE HH:mm") : (alarm.formatted ?? "Alarm set")) : "No alarm set"
             fontSize: 11
             bold: true
             maxLines: 1
@@ -916,6 +919,7 @@ face "dhawan-home" {
     Column {
       fill: width
       background: c_card
+      frost: c_frost
       border: 1
       borderColor: c_border
       radius: 20
@@ -963,12 +967,17 @@ face "dhawan-home" {
             border: torchOn ? 0 : 1
             borderColor: c_border
             align: center
-            Text {
-              text: "ϟ"
-              fontSize: 20
-              bold: true
-              align: center
-              color: torchOn ? "#000000" : c_text_pri
+            let c_icon = torchOn ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+            Canvas {
+              size: 24
+              path([[7, 9], [17, 9], [19, 4], [5, 4]], closed: true, fill: c_icon)
+              rect(9, 10, 6, 10, radius: 1.5, fill: c_icon)
+              rect(11, 12, 2, 3, radius: 0.5, fill: torchOn ? (isDark ? "#FFFFFF" : "#000000") : c_pill_off)
+              if torchOn {
+                line(12, 0.5, 12, 2.5, stroke: c_icon, width: 1.5, cap: round)
+                line(6, 1, 7.5, 2.5, stroke: c_icon, width: 1.5, cap: round)
+                line(18, 1, 16.5, 2.5, stroke: c_icon, width: 1.5, cap: round)
+              }
             }
           }
           Text {
@@ -993,12 +1002,17 @@ face "dhawan-home" {
             border: !isMuted ? 0 : 1
             borderColor: c_border
             align: center
-            Text {
-              text: isMuted ? "✕" : "♪"
-              fontSize: 20
-              bold: true
-              align: center
-              color: !isMuted ? "#000000" : c_text_pri
+            let c_icon = !isMuted ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+            Canvas {
+              size: 24
+              path([[4, 9], [8, 9], [12, 5], [12, 19], [8, 15], [4, 15]], closed: true, fill: c_icon)
+              if !isMuted {
+                arc(10, 12, 5, 305, 110, stroke: c_icon, width: 1.8, cap: round)
+                arc(10, 12, 8.5, 310, 100, stroke: c_icon, width: 1.8, cap: round)
+              } else {
+                line(15, 8, 20, 16, stroke: c_icon, width: 2, cap: round)
+                line(20, 8, 15, 16, stroke: c_icon, width: 2, cap: round)
+              }
             }
           }
           Text {
@@ -1010,7 +1024,7 @@ face "dhawan-home" {
           }
         }
 
-        // 3. DND
+        // 3. DND (Official One UI Minus-in-Circle)
         let dndOn = modes.dnd == true
         Column {
           align: center
@@ -1023,11 +1037,11 @@ face "dhawan-home" {
             border: dndOn ? 0 : 1
             borderColor: c_border
             align: center
-            Text {
-              text: "☾︎"
-              fontSize: 20
-              align: center
-              color: dndOn ? "#000000" : c_text_pri
+            let c_icon = dndOn ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+            Canvas {
+              size: 24
+              circle(12, 12, 9, stroke: c_icon, width: 2)
+              line(7, 12, 17, 12, stroke: c_icon, width: 2.5, cap: round)
             }
           }
           Text {
@@ -1052,12 +1066,13 @@ face "dhawan-home" {
             border: wifiOn ? 0 : 1
             borderColor: c_border
             align: center
-            Text {
-              text: "≋"
-              fontSize: 20
-              bold: true
-              align: center
-              color: wifiOn ? "#000000" : c_text_pri
+            let c_icon = wifiOn ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+            Canvas {
+              size: 24
+              circle(12, 19, 1.8, fill: c_icon)
+              arc(12, 18, 5, 315, 90, stroke: c_icon, width: 2, cap: round)
+              arc(12, 18, 8.5, 315, 90, stroke: c_icon, width: 2, cap: round)
+              arc(12, 18, 12, 315, 90, stroke: c_icon, width: 2, cap: round)
             }
           }
           Text {
@@ -1082,12 +1097,11 @@ face "dhawan-home" {
             border: btOn ? 0 : 1
             borderColor: c_border
             align: center
-            Text {
-              text: "ᛒ"
-              fontSize: 20
-              bold: true
-              align: center
-              color: btOn ? "#000000" : c_text_pri
+            let c_icon = btOn ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+            Canvas {
+              size: 24
+              line(12, 3, 12, 21, stroke: c_icon, width: 2, cap: round)
+              path([[7, 7.5], [17, 16.5], [12, 21], [12, 3], [17, 7.5], [7, 16.5]], stroke: c_icon, width: 2, cap: round)
             }
           }
           Text {
@@ -1111,12 +1125,11 @@ face "dhawan-home" {
             border: 1
             borderColor: c_border
             align: center
-            Text {
-              text: ">_"
-              fontSize: 16
-              bold: true
-              align: center
-              color: c_text_pri
+            let c_icon = c_text_pri
+            Canvas {
+              size: 24
+              path([[5, 7], [11, 12], [5, 17]], stroke: c_icon, width: 2, cap: round)
+              line(13, 17, 19, 17, stroke: c_icon, width: 2, cap: round)
             }
           }
           Text {
@@ -1129,7 +1142,7 @@ face "dhawan-home" {
         }
       }
 
-      // Secondary Quick Controls (Expanded row: Airplane, Dark Theme, Battery Saver, Audio Output Switcher, Internet Panel)
+      // Secondary Quick Controls (Expanded row: Airplane, Dark Theme, Battery Saver, Output, Network, App Updates)
       if showMoreControls {
         Row {
           fill: width
@@ -1149,11 +1162,12 @@ face "dhawan-home" {
               border: airOn ? 0 : 1
               borderColor: c_border
               align: center
-              Text {
-                text: "✈"
-                fontSize: 18
-                align: center
-                color: airOn ? "#000000" : c_text_pri
+              let c_icon = airOn ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+              Canvas {
+                size: 24
+                line(12, 3, 12, 21, stroke: c_icon, width: 2.2, cap: round)
+                path([[4, 12], [12, 8], [20, 12]], stroke: c_icon, width: 2, cap: round)
+                path([[8, 19], [12, 16.5], [16, 19]], stroke: c_icon, width: 1.8, cap: round)
               }
             }
             Text {
@@ -1178,12 +1192,11 @@ face "dhawan-home" {
               border: darkOn ? 0 : 1
               borderColor: c_border
               align: center
-              Text {
-                text: "◐"
-                fontSize: 18
-                bold: true
-                align: center
-                color: darkOn ? "#000000" : c_text_pri
+              let c_icon = darkOn ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+              Canvas {
+                size: 24
+                arc(12, 12, 8, 30, 240, stroke: c_icon, width: 2.2, cap: round)
+                arc(14, 12, 6, 40, 220, stroke: c_icon, width: 1.8, cap: round)
               }
             }
             Text {
@@ -1208,12 +1221,12 @@ face "dhawan-home" {
               border: saverOn ? 0 : 1
               borderColor: c_border
               align: center
-              Text {
-                text: "⚡"
-                fontSize: 18
-                bold: true
-                align: center
-                color: saverOn ? "#000000" : c_text_pri
+              let c_icon = saverOn ? (isDark ? "#000000" : "#FFFFFF") : c_text_pri
+              Canvas {
+                size: 24
+                rect(10, 2.5, 4, 2, radius: 0.8, fill: c_icon)
+                rect(6, 4.5, 12, 16, radius: 2.5, stroke: c_icon, width: 1.8)
+                path([[13, 7.5], [9.5, 12.5], [12, 12.5], [10.5, 17], [14.5, 11.5], [12, 11.5]], closed: true, fill: c_icon)
               }
             }
             Text {
@@ -1237,12 +1250,11 @@ face "dhawan-home" {
               border: 1
               borderColor: c_border
               align: center
-              Text {
-                text: "⎋"
-                fontSize: 18
-                bold: true
-                align: center
-                color: c_text_pri
+              let c_icon = c_text_pri
+              Canvas {
+                size: 24
+                rect(4, 5, 16, 12, radius: 2, stroke: c_icon, width: 1.8)
+                path([[9, 17], [12, 13.5], [15, 17]], closed: true, fill: c_icon)
               }
             }
             Text {
@@ -1266,16 +1278,46 @@ face "dhawan-home" {
               border: 1
               borderColor: c_border
               align: center
-              Text {
-                text: "☵"
-                fontSize: 18
-                bold: true
-                align: center
-                color: c_text_pri
+              let c_icon = c_text_pri
+              Canvas {
+                size: 24
+                line(8, 6, 8, 18, stroke: c_icon, width: 1.8, cap: round)
+                path([[5, 9], [8, 6], [11, 9]], stroke: c_icon, width: 1.8, cap: round)
+                line(16, 6, 16, 18, stroke: c_icon, width: 1.8, cap: round)
+                path([[13, 15], [16, 18], [19, 15]], stroke: c_icon, width: 1.8, cap: round)
               }
             }
             Text {
               text: "Network"
+              fontSize: 10
+              bold: true
+              color: c_text_sec
+              align: center
+            }
+          }
+
+          // 12. In-App Updates Check & Download
+          Column {
+            align: center
+            gap: 6
+            onTap: { haptic("medium"); launcher("updates") }
+            Box {
+              size: 48
+              radius: 24
+              background: c_pill_off
+              border: 1
+              borderColor: c_border
+              align: center
+              let c_icon = c_text_pri
+              Canvas {
+                size: 24
+                arc(12, 12, 8, 30, 300, stroke: c_icon, width: 1.8, cap: round)
+                line(12, 6, 12, 14, stroke: c_icon, width: 2, cap: round)
+                path([[9, 11], [12, 14], [15, 11]], stroke: c_icon, width: 2, cap: round)
+              }
+            }
+            Text {
+              text: "Updates"
               fontSize: 10
               bold: true
               color: c_text_sec
