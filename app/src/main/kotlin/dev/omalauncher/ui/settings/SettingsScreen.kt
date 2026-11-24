@@ -270,10 +270,12 @@ private fun UpdatesBox(
     val pending = markets.flatMap { m -> m.updates.map { m to it } }
     // Edited ones are left to the store, which says their changes would go.
     val (held, ready) = pending.partition { (m, e) -> m.edited(e) }
-    val busy = updates.job is JobState.Working || updates.checking || engine.updating || markets.any { it.loading } || launcher.checking
+    val downloading = launcher.downloading
+    val busy = updates.job is JobState.Working || updates.checking || engine.updating || markets.any { it.loading } || launcher.checking || downloading != null
     val widgets = pending.isNotEmpty() || engine.updating || engine.updateError != null
-    val launcherShown = launcher.available || launcher.failed
-    if (!linux && !widgets && !launcherShown) return
+    // Once GitHub has answered, the launcher's line stays, "up to date" included, so there's always a "check" here.
+    val launcherShown = launcher.available || launcher.failed || downloading != null || launcher.checkedAt > 0
+    if (!linux && !widgets && !launcherShown && !launcher.checking) return
     Column(
         Modifier.padding(bottom = 8.dp).card(),
     ) {
@@ -311,8 +313,16 @@ private fun UpdatesBox(
             val launcherReady = launcher.available && !busy
             // GitHub's has a version; Play's doesn't.
             val line = launcher.version?.let { stringResource(R.string.settings_launcher_update_github, BuildConfig.VERSION_NAME, it) } ?: stringResource(R.string.settings_launcher_update_available)
-            if (launcher.available) UpdateLines(listOf(line), launcherReady) { launcher.start(playScreen) }
-            if (launcher.failed) BasicText(stringResource(R.string.settings_launcher_update_failed), style = Mono.copy(color = Palette.red, fontSize = TextSize.Small))
+            when {
+                downloading != null -> UpdateLines(listOf("${stringResource(R.string.settings_updating)} $downloading%"), false) {}
+                launcher.available -> UpdateLines(listOf(line), launcherReady) { launcher.start(playScreen) }
+                launcher.checkedAt > 0 -> UpdateLines(listOf(stringResource(R.string.settings_up_to_date, ago(launcher.checkedAt))), false) {}
+            }
+            if (launcher.failed && downloading == null) {
+                // A download from GitHub (which has a version), or Play's own update screen.
+                val failed = if (launcher.version != null) R.string.settings_launcher_download_failed else R.string.settings_launcher_update_failed
+                BasicText(stringResource(failed), style = Mono.copy(color = Palette.red, fontSize = TextSize.Small))
+            }
         }
     }
 }

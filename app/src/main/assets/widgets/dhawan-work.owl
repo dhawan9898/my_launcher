@@ -1,8 +1,8 @@
 face "dhawan-work" {
   meta {
-    owl: 23
+    owl: 26
     description: "Vantablack OLED Work, Uni & Productivity Workspace"
-    version: "1.0"
+    version: "1.1"
     license: "MIT"
     category: "productivity"
   }
@@ -12,9 +12,9 @@ face "dhawan-work" {
 
   // --- Real-time Sources ---
   source now = clock every 1m
-  source net = android.network every 5s
-  source sys = android.system every 5s
   source modes = android.modes
+  // Every app on the phone (Android, Linux and owl apps), for the tiles and the app picker.
+  source d = android.drawer
 
   // --- Vantablack High-Contrast Monochrome Design Tokens ---
   let c_bg = "#000000"
@@ -24,6 +24,13 @@ face "dhawan-work" {
   let c_pill_on = "#FFFFFF"
   let c_text_pri = "#FFFFFF"
   let c_text_sec = "#8E8E93"
+
+  // --- Liquid glass: a pane lit from the top left, a bright rim, and a springy press ---
+  let c_glass = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.11), alpha("#FFFFFF", 0.035)])
+  let c_glass_edit = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.18), alpha("#FFFFFF", 0.06)])
+  let c_rim = alpha("#FFFFFF", 0.16)
+  let c_rim_edit = alpha("#FFFFFF", 0.45)
+  let c_clear = alpha("#000000", 0)
 
   // Dynamic Status Readouts
   let dateStr = fmtTime(now, "EEEE, d MMMM")
@@ -40,6 +47,243 @@ face "dhawan-work" {
   ] persist
 
   let pendingCount = count(todos, t => !startsWith(t, "- [x] "))
+
+  // --- Editable app tiles ---
+  // Each section's tiles, by section id: drawer keys once edited. Until then a section shows its defaults, given by
+  // package name, which match that app's drawer key ("a:<package>/<activity>"), or by the app's name ("Phone").
+  state tiles = {} persist
+  // The section in edit mode, "" for none.
+  state editing = ""
+  // The app picker: the section and the tile it replaces, -1 to add one; "" while it's closed.
+  state pickSec = ""
+  state pickIdx = -1
+  state query = ""
+  // The node under the finger, for the press spring.
+  state pressed = ""
+
+  let allApps = d.apps ?? []
+  let picks = query == "" ? take(allApps, 60) : take(rank(allApps, query), 40)
+
+  // One app tile: the app's own icon as a white silhouette on glass. In edit mode a tap picks another app for it.
+  // compact: a glass squircle with the name under it, for a row of many; else a card with both inside.
+  component AppTile(sec, ref, i, list, compact) {
+    let a = find(allApps, x => x.key == ref || startsWith(x.key, "a:" + ref + "/") || lower(x.name) == lower(ref))
+    let id = sec + ":" + i
+    let isEditing = editing == sec
+    Column {
+      padding: compact ? [0, 2] : [10, 14]
+      radius: 16
+      background: compact ? c_clear : (isEditing ? c_glass_edit : c_glass)
+      border: compact ? 0 : 1
+      borderColor: isEditing ? c_rim_edit : c_rim
+      align: center
+      justify: center
+      gap: 6
+      scale: pressed == id ? 0.92 : 1
+      animate scale: spring(0.55, 600)
+      opacity: a == null ? 0.45 : 1
+      onPress: pressed = id
+      onRelease: pressed = ""
+      onTap: {
+        haptic("light")
+        if isEditing {
+          pickSec = sec
+          pickIdx = i
+          query = ""
+        } else if a != null {
+          open(a.key)
+        }
+      }
+      onLongPress: {
+        haptic("medium")
+        editing = isEditing ? "" : sec
+      }
+      Box {
+        size: compact ? 50 : 28
+        radius: 16
+        background: compact ? (isEditing ? c_glass_edit : c_glass) : c_clear
+        border: compact ? 1 : 0
+        borderColor: isEditing ? c_rim_edit : c_rim
+        align: center
+        if a != null && a.hasIcon {
+          Image { src: a.mask; size: 26; tint: c_text_pri; label: a.label }
+        } else {
+          Text { text: a != null ? a.initials : "?"; fontSize: 14; bold: true; color: c_text_pri; align: center }
+        }
+        if isEditing {
+          // Remove badge, at the icon's corner.
+          Box {
+            size: 20
+            radius: 10
+            offset: compact ? [20, -20] : [16, -14]
+            background: c_pill_on
+            align: center
+            onTap: {
+              haptic("light")
+              tiles = set(tiles, sec, remove(list, i))
+            }
+            Text { text: "×"; fontSize: 13; bold: true; color: "#000000"; align: center }
+          }
+        }
+      }
+      Text {
+        text: a != null ? a.name : "not installed"
+        fontSize: compact ? 10 : 11
+        bold: true
+        align: center
+        maxLines: 1
+        color: c_text_pri
+      }
+    }
+  }
+
+  // A card of app tiles that you can change: long-press a tile or tap "edit", then tap a tile to swap its app,
+  // its × to remove it, or + to add one.
+  component AppSection(sec, title, defaults, cols, compact = false) {
+    let list = get(tiles, sec, defaults)
+    let isEditing = editing == sec
+    let shown = isEditing ? list : filter(list, r => find(allApps, x => x.key == r || startsWith(x.key, "a:" + r + "/") || lower(x.name) == lower(r)) != null)
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text { text: title; style: label; fontSize: 11; color: c_text_sec; weight: 1 }
+        Row {
+          padding: [10, 5]
+          radius: 10
+          background: isEditing ? c_pill_on : c_glass
+          border: isEditing ? 0 : 1
+          borderColor: c_rim
+          onTap: {
+            haptic("light")
+            editing = isEditing ? "" : sec
+          }
+          Text { text: isEditing ? "DONE" : "EDIT"; style: label; fontSize: 10; bold: true; color: isEditing ? "#000000" : c_text_sec }
+        }
+      }
+
+      Grid {
+        columns: cols
+        gap: 8
+        fill: width
+        for r, i in shown {
+          AppTile { sec: sec; ref: r; i: isEditing ? i : indexOf(list, r); list: list; compact: compact }
+        }
+        if isEditing {
+          // Add a tile.
+          Column {
+            padding: compact ? [0, 2] : [10, 14]
+            radius: 16
+            border: compact ? 0 : 1
+            borderColor: c_rim_edit
+            align: center
+            justify: center
+            gap: 6
+            onTap: {
+              haptic("light")
+              pickSec = sec
+              pickIdx = -1
+              query = ""
+            }
+            Box { size: compact ? 50 : 28; radius: 16; border: compact ? 1 : 0; borderColor: c_rim_edit; align: center; Text { text: "+"; fontSize: 22; color: c_text_pri; align: center } }
+            Text { text: "add"; fontSize: 11; bold: true; align: center; color: c_text_sec }
+          }
+        }
+      }
+
+      if isEditing {
+        Row {
+          fill: width
+          justify: spaceBetween
+          Text { text: "tap a tile to change its app"; fontSize: 10; color: c_text_sec }
+          Text {
+            text: "Reset"
+            style: label
+            fontSize: 10
+            color: c_text_sec
+            onTap: {
+              haptic("medium")
+              tiles = remove(tiles, sec)
+            }
+          }
+        }
+      }
+
+      // The app picker, over everything, for this section.
+      Popup {
+        visible: pickSec == sec
+        onDismiss: {
+          pickSec = ""
+          query = ""
+        }
+        width: screenWidth - 48
+        padding: 12
+        background: "#161618"
+        radius: 20
+        border: 1
+        borderColor: c_rim
+        Column {
+          fill: width
+          gap: 8
+          Row {
+            fill: width
+            align: center
+            padding: [10, 8]
+            radius: 12
+            background: c_pill_off
+            Input {
+              weight: 1
+              placeholder: "Search apps"
+              underline: false
+              color: c_text_pri
+              fontSize: 14
+              onChange: query = value
+            }
+          }
+          Column {
+            fill: width
+            height: 340
+            scroll: true
+            gap: 2
+            for a in picks {
+              Row {
+                fill: width
+                align: center
+                gap: 12
+                padding: [8, 10]
+                radius: 12
+                onTap: {
+                  haptic("light")
+                  let next = pickIdx < 0 ? list + [a.key] : set(list, pickIdx, a.key)
+                  tiles = set(tiles, sec, next)
+                  pickSec = ""
+                  query = ""
+                }
+                Box {
+                  size: 28
+                  align: center
+                  if a.hasIcon {
+                    Image { src: a.mask; size: 24; tint: c_text_pri; label: a.label }
+                  } else {
+                    Text { text: a.initials; fontSize: 12; bold: true; color: c_text_pri }
+                  }
+                }
+                Text { text: a.name; fontSize: 14; color: c_text_pri; weight: 1; maxLines: 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   background: c_bg
   padding: [16, 20, 16, 20]
@@ -67,417 +311,151 @@ face "dhawan-work" {
 
         // All Apps Drawer Trigger
         Row {
-          padding: [8, 5]
+          padding: [10, 6]
           radius: 12
-          background: c_card
+          background: c_glass
           border: 1
-          borderColor: c_border
+          borderColor: c_rim
           align: center
+          scale: pressed == "h:apps" ? 0.92 : 1
+          animate scale: spring(0.55, 600)
+          onPress: pressed = "h:apps"
+          onRelease: pressed = ""
           onTap: {
             haptic("light")
             launcher("drawer")
           }
-          Text {
-            text: "⊞ APPS"
-            fontSize: 10
-            bold: true
-            color: c_text_sec
-          }
+          Text { text: "APPS"; fontSize: 10; bold: true; color: c_text_sec }
         }
 
         // Player Trigger (Page -2)
         Row {
-          padding: [8, 5]
+          padding: [10, 6]
           radius: 12
-          background: c_card
+          background: c_glass
           border: 1
-          borderColor: c_border
+          borderColor: c_rim
           align: center
+          scale: pressed == "h:player" ? 0.92 : 1
+          animate scale: spring(0.55, 600)
+          onPress: pressed = "h:player"
+          onRelease: pressed = ""
           onTap: {
             haptic("light")
             launcher("page:-2")
           }
-          Text {
-            text: "🎵"
-            fontSize: 10
-            bold: true
-          }
+          Text { text: "♪"; fontSize: 12; bold: true; color: c_text_pri }
         }
 
         // Home Navigation Trigger (Home is on page -1)
         Row {
-          padding: [10, 5]
+          padding: [10, 6]
           radius: 12
-          background: c_card
+          background: c_glass
           border: 1
-          borderColor: c_border
+          borderColor: c_rim
           align: center
+          scale: pressed == "h:home" ? 0.92 : 1
+          animate scale: spring(0.55, 600)
+          onPress: pressed = "h:home"
+          onRelease: pressed = ""
           onTap: {
             haptic("light")
             launcher("page:-1")
           }
-          Text {
-            text: "‹ HOME"
-            fontSize: 11
-            bold: true
-            color: c_text_pri
-          }
+          Text { text: "‹ HOME"; fontSize: 11; bold: true; color: c_text_pri }
         }
       }
     }
 
     // =========================================================================
-    // SECTION 1: QUICK PAYMENTS & UPI (Top of Screen)
+    // SECTION 1: TODAY & FOCUS (top of the screen)
     // =========================================================================
-    Column {
+    Row {
       fill: width
-      background: c_card
+      align: center
+      background: c_glass
       border: 1
-      borderColor: c_border
+      borderColor: c_rim
       radius: 20
       padding: 16
-      gap: 12
-
-      Row {
-        fill: width
-        align: center
+      Column {
+        weight: 1
+        gap: 2
+        Text { text: dateStr; fontSize: 15; bold: true; color: c_text_pri }
         Text {
-          text: "💳  QUICK UPI & PAYMENTS"
-          style: label
-          fontSize: 11
-          color: c_text_sec
-          weight: 1
-        }
-        Text {
-          text: "INSTANT SCAN"
-          style: label
-          fontSize: 10
+          text: "${timeStr} • ${pendingCount} pending task${pendingCount == 1 ? '' : 's'}"
+          fontSize: 12
           color: c_text_sec
         }
       }
 
-      // Hero Prominent Scan QR Action Button
+      // Quick Focus / DND Mode Toggle
       Row {
-        fill: width
         align: center
-        justify: center
-        gap: 10
-        padding: [14, 12]
-        radius: 14
-        background: c_pill_on
+        gap: 6
+        padding: [12, 8]
+        radius: 12
+        background: isDnd ? c_pill_on : c_pill_off
+        animate background: tween(250ms, "ease")
+        border: isDnd ? 0 : 1
+        borderColor: c_rim
+        scale: pressed == "focus" ? 0.92 : 1
+        animate scale: spring(0.55, 600)
+        onPress: pressed = "focus"
+        onRelease: pressed = ""
         onTap: {
-          haptic("medium")
-          url("upi://pay")
+          haptic("light")
+          dnd("toggle")
         }
-
-        Text {
-          text: "⛶"
-          fontSize: 20
-          bold: true
-          color: "#000000"
-        }
-        Column {
-          gap: 2
-          Text {
-            text: "SCAN ANY UPI QR CODE"
-            fontSize: 13
-            bold: true
-            color: "#000000"
-          }
-          Text {
-            text: "Direct camera scan • GPay / PhonePe / Paytm / BHIM"
-            fontSize: 10
-            color: "#444444"
-          }
-        }
-      }
-
-      // Fast UPI App Launchers
-      Row {
-        fill: width
-        gap: 8
-
-        // Google Pay
-        Column {
-          weight: 1
-          padding: [10, 12]
-          radius: 12
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 4
-          onTap: androidApp("com.google.android.apps.nbu.paisa.user")
-          Text { text: "G"; fontSize: 16; bold: true; color: c_text_pri; align: center }
-          Text { text: "GPay"; fontSize: 10; bold: true; color: c_text_pri; align: center }
-        }
-
-        // PhonePe
-        Column {
-          weight: 1
-          padding: [10, 12]
-          radius: 12
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 4
-          onTap: androidApp("com.phonepe.app")
-          Text { text: "पे"; fontSize: 16; bold: true; color: c_text_pri; align: center }
-          Text { text: "PhonePe"; fontSize: 10; bold: true; color: c_text_pri; align: center }
-        }
-
-        // Paytm
-        Column {
-          weight: 1
-          padding: [10, 12]
-          radius: 12
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 4
-          onTap: androidApp("net.one97.paytm")
-          Text { text: "₹"; fontSize: 16; bold: true; color: c_text_pri; align: center }
-          Text { text: "Paytm"; fontSize: 10; bold: true; color: c_text_pri; align: center }
-        }
+        Text { text: isDnd ? "◐" : "○"; fontSize: 12; color: isDnd ? "#000000" : c_text_pri }
+        Text { text: isDnd ? "FOCUS ON" : "FOCUS"; style: label; fontSize: 10; bold: true; color: isDnd ? "#000000" : c_text_pri }
       }
     }
 
     // =========================================================================
-    // SECTION 2: WORKSPACE APPS (Outlook, Teams, Notes, GitHub, Docs)
+    // SECTION 2: QUICK UPI & PAYMENTS
     // =========================================================================
-    Column {
+    // Hero Scan QR Action Button
+    Row {
       fill: width
-      background: c_card
-      border: 1
-      borderColor: c_border
-      radius: 20
-      padding: 16
+      align: center
+      justify: center
       gap: 12
-
-      Row {
-        fill: width
-        align: center
-        Text {
-          text: "💼  WORKSPACE APPS"
-          style: label
-          fontSize: 11
-          color: c_text_sec
-          weight: 1
-        }
-        Text {
-          text: "WORK & STUDY"
-          style: label
-          fontSize: 10
-          color: c_text_sec
-        }
+      padding: [14, 14]
+      radius: 18
+      background: c_pill_on
+      scale: pressed == "scan" ? 0.96 : 1
+      animate scale: spring(0.55, 600)
+      onPress: pressed = "scan"
+      onRelease: pressed = ""
+      onTap: {
+        haptic("medium")
+        url("upi://pay")
       }
-
-      // Row 1: Outlook, Teams, Notes
-      Row {
-        fill: width
-        gap: 8
-
-        // Outlook
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.microsoft.office.outlook")
-          Text {
-            text: "📧"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Outlook"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-
-        // Teams
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.microsoft.teams")
-          Text {
-            text: "👥"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Teams"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-
-        // Notes
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.samsung.android.app.notes")
-          Text {
-            text: "📝"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Notes"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-      }
-
-      // Row 2: GitHub, Docs
-      Row {
-        fill: width
-        gap: 8
-
-        // GitHub
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.github.android")
-          Text {
-            text: "🐙"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "GitHub"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-
-        // Docs
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.google.android.apps.docs.editors.docs")
-          Text {
-            text: "📄"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Docs"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
+      Text { text: "⛶"; fontSize: 20; bold: true; color: "#000000" }
+      Column {
+        gap: 2
+        Text { text: "SCAN ANY UPI QR CODE"; fontSize: 13; bold: true; color: "#000000" }
+        Text { text: "GPay / PhonePe / Paytm / BHIM"; fontSize: 10; color: "#444444" }
       }
     }
 
-    // =========================================================================
-    // SECTION 3: PRODUCTIVITY & FOCUS STATUS CARD
-    // =========================================================================
-    Column {
-      fill: width
-      background: c_card
-      border: 1
-      borderColor: c_border
-      radius: 20
-      padding: 16
-      gap: 12
+    AppSection {
+      sec: "pay"
+      title: "PAYMENTS"
+      defaults: ["com.google.android.apps.nbu.paisa.user", "com.phonepe.app", "net.one97.paytm"]
+      cols: 3
+    }
 
-      Row {
-        fill: width
-        align: center
-        Column {
-          weight: 1
-          gap: 2
-          Text {
-            text: dateStr
-            fontSize: 14
-            bold: true
-            color: c_text_pri
-          }
-          Text {
-            text: "${timeStr} • ${pendingCount} pending task${pendingCount == 1 ? '' : 's'}"
-            fontSize: 12
-            color: c_text_sec
-          }
-        }
-
-        // Quick Focus / DND Mode Toggle
-        Row {
-          align: center
-          gap: 6
-          padding: [10, 8]
-          radius: 12
-          background: isDnd ? c_pill_on : c_pill_off
-          border: isDnd ? 0 : 1
-          borderColor: c_border
-          onTap: {
-            haptic("light")
-            dnd("toggle")
-          }
-          Text {
-            text: isDnd ? "🌙" : "✦"
-            fontSize: 12
-            color: isDnd ? "#000000" : c_text_pri
-          }
-          Text {
-            text: isDnd ? "FOCUS ON" : "FOCUS MODE"
-            style: label
-            fontSize: 10
-            bold: true
-            color: isDnd ? "#000000" : c_text_pri
-          }
-        }
-      }
+    // =========================================================================
+    // SECTION 3: WORKSPACE APPS
+    // =========================================================================
+    AppSection {
+      sec: "work"
+      title: "WORKSPACE APPS"
+      defaults: ["com.microsoft.office.outlook", "com.microsoft.teams", "com.samsung.android.app.notes", "com.github.android", "com.google.android.apps.docs.editors.docs", "com.brave.browser"]
+      cols: 3
     }
 
     // =========================================================================
@@ -497,7 +475,7 @@ face "dhawan-work" {
         fill: width
         align: center
         Text {
-          text: "📋  TASKS & TODO LIST"
+          text: "TASKS & TODO LIST"
           style: label
           fontSize: 11
           color: c_text_pri
@@ -693,7 +671,7 @@ face "dhawan-work" {
         fill: width
         align: center
         Text {
-          text: "⚡  DEV & TERMINAL TOOLS"
+          text: "DEV & TERMINAL TOOLS"
           style: label
           fontSize: 11
           color: c_text_sec
@@ -744,7 +722,7 @@ face "dhawan-work" {
           justify: center
           gap: 6
           onTap: terminal("btop")
-          Text { text: "💻"; fontSize: 12; align: center }
+          Text { text: "≡"; fontSize: 13; bold: true; color: c_text_pri; align: center }
           Text {
             text: "btop"
             fontSize: 11
@@ -805,8 +783,9 @@ face "dhawan-work" {
           launcher("page:-2")
         }
         Text {
-          text: "🎵"
+          text: "♪"
           fontSize: 15
+          color: c_text_pri
         }
         Text {
           text: "PLAYER"

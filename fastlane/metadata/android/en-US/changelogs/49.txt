@@ -1,0 +1,4 @@
+- Edit app tiles: long-press a tile or tap EDIT on the work, home and media screens, then tap a tile to swap in any app, × to remove it, or + to add one. Your choices are kept across updates.
+- Minimal icons: app tiles show each app's own icon as a white silhouette on liquid glass, with a springy press; emoji are replaced by plain symbols.
+- Work screen: today and focus mode are now at the top.
+- Updates from the app: settings shows the launcher's update status, and "update" downloads the new release from GitHub and installs it.

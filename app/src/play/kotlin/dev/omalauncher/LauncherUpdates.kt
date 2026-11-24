@@ -44,6 +44,12 @@ class LauncherUpdates(
     /** Play doesn't say the newer version's name. */
     val version: String? = null
 
+    /** Play downloads the update itself, behind its own screen. */
+    val downloading: Int? = null
+
+    /** Play answers from its own cache, so there's no time of a last check to show. */
+    val checkedAt = 0L
+
     /** Asks Play; Play answers from its own cache, so every call asks, [force] or not. */
     @Suppress("UNUSED_PARAMETER")
     fun check(force: Boolean = false) {

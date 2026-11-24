@@ -1,6 +1,6 @@
 face "dhawan-media" {
   meta {
-    owl: 23
+    owl: 26
     description: "Vantablack OLED Full-Screen Media Hub"
     version: "1.0"
     license: "MIT"
@@ -14,6 +14,8 @@ face "dhawan-media" {
   source m = android.media
   source vol = android.volume
   source now = clock every 1s
+  // Every app on the phone (Android, Linux and owl apps), for the editable app tiles and the app picker.
+  source d = android.drawer
 
   // --- Vantablack High-Contrast Monochrome Design Tokens ---
   let c_bg = "#000000"
@@ -23,6 +25,13 @@ face "dhawan-media" {
   let c_pill_on = "#FFFFFF"
   let c_text_pri = "#FFFFFF"
   let c_text_sec = "#8E8E93"
+
+  // --- Liquid glass: a pane lit from the top left, a bright rim, and a springy press ---
+  let c_glass = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.11), alpha("#FFFFFF", 0.035)])
+  let c_glass_edit = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.18), alpha("#FFFFFF", 0.06)])
+  let c_rim = alpha("#FFFFFF", 0.16)
+  let c_rim_edit = alpha("#FFFFFF", 0.45)
+  let c_clear = alpha("#000000", 0)
 
   // Playback state extraction
   let isPlaying = m != null && m.playing == true
@@ -43,6 +52,243 @@ face "dhawan-media" {
   let outName = (vol != null && vol.output != null && vol.output.name != null && vol.output.name != "") ? vol.output.name : "Phone Speaker"
   let volPct = vol != null ? (vol.level ?? 0) : 0
   let volText = vol != null && vol.level != null ? "${vol.level}%" : "—"
+
+  // --- Editable app tiles ---
+  // Each section's tiles, by section id: drawer keys once edited. Until then a section shows its defaults, given by
+  // package name, which match that app's drawer key ("a:<package>/<activity>"), or by the app's name ("Phone").
+  state tiles = {} persist
+  // The section in edit mode, "" for none.
+  state editing = ""
+  // The app picker: the section and the tile it replaces, -1 to add one; "" while it's closed.
+  state pickSec = ""
+  state pickIdx = -1
+  state query = ""
+  // The node under the finger, for the press spring.
+  state pressed = ""
+
+  let allApps = d.apps ?? []
+  let picks = query == "" ? take(allApps, 60) : take(rank(allApps, query), 40)
+
+  // One app tile: the app's own icon as a white silhouette on glass. In edit mode a tap picks another app for it.
+  // compact: a glass squircle with the name under it, for a row of many; else a card with both inside.
+  component AppTile(sec, ref, i, list, compact) {
+    let a = find(allApps, x => x.key == ref || startsWith(x.key, "a:" + ref + "/") || lower(x.name) == lower(ref))
+    let id = sec + ":" + i
+    let isEditing = editing == sec
+    Column {
+      padding: compact ? [0, 2] : [10, 14]
+      radius: 16
+      background: compact ? c_clear : (isEditing ? c_glass_edit : c_glass)
+      border: compact ? 0 : 1
+      borderColor: isEditing ? c_rim_edit : c_rim
+      align: center
+      justify: center
+      gap: 6
+      scale: pressed == id ? 0.92 : 1
+      animate scale: spring(0.55, 600)
+      opacity: a == null ? 0.45 : 1
+      onPress: pressed = id
+      onRelease: pressed = ""
+      onTap: {
+        haptic("light")
+        if isEditing {
+          pickSec = sec
+          pickIdx = i
+          query = ""
+        } else if a != null {
+          open(a.key)
+        }
+      }
+      onLongPress: {
+        haptic("medium")
+        editing = isEditing ? "" : sec
+      }
+      Box {
+        size: compact ? 50 : 28
+        radius: 16
+        background: compact ? (isEditing ? c_glass_edit : c_glass) : c_clear
+        border: compact ? 1 : 0
+        borderColor: isEditing ? c_rim_edit : c_rim
+        align: center
+        if a != null && a.hasIcon {
+          Image { src: a.mask; size: 26; tint: c_text_pri; label: a.label }
+        } else {
+          Text { text: a != null ? a.initials : "?"; fontSize: 14; bold: true; color: c_text_pri; align: center }
+        }
+        if isEditing {
+          // Remove badge, at the icon's corner.
+          Box {
+            size: 20
+            radius: 10
+            offset: compact ? [20, -20] : [16, -14]
+            background: c_pill_on
+            align: center
+            onTap: {
+              haptic("light")
+              tiles = set(tiles, sec, remove(list, i))
+            }
+            Text { text: "×"; fontSize: 13; bold: true; color: "#000000"; align: center }
+          }
+        }
+      }
+      Text {
+        text: a != null ? a.name : "not installed"
+        fontSize: compact ? 10 : 11
+        bold: true
+        align: center
+        maxLines: 1
+        color: c_text_pri
+      }
+    }
+  }
+
+  // A card of app tiles that you can change: long-press a tile or tap "edit", then tap a tile to swap its app,
+  // its × to remove it, or + to add one.
+  component AppSection(sec, title, defaults, cols, compact = false) {
+    let list = get(tiles, sec, defaults)
+    let isEditing = editing == sec
+    let shown = isEditing ? list : filter(list, r => find(allApps, x => x.key == r || startsWith(x.key, "a:" + r + "/") || lower(x.name) == lower(r)) != null)
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text { text: title; style: label; fontSize: 11; color: c_text_sec; weight: 1 }
+        Row {
+          padding: [10, 5]
+          radius: 10
+          background: isEditing ? c_pill_on : c_glass
+          border: isEditing ? 0 : 1
+          borderColor: c_rim
+          onTap: {
+            haptic("light")
+            editing = isEditing ? "" : sec
+          }
+          Text { text: isEditing ? "DONE" : "EDIT"; style: label; fontSize: 10; bold: true; color: isEditing ? "#000000" : c_text_sec }
+        }
+      }
+
+      Grid {
+        columns: cols
+        gap: 8
+        fill: width
+        for r, i in shown {
+          AppTile { sec: sec; ref: r; i: isEditing ? i : indexOf(list, r); list: list; compact: compact }
+        }
+        if isEditing {
+          // Add a tile.
+          Column {
+            padding: compact ? [0, 2] : [10, 14]
+            radius: 16
+            border: compact ? 0 : 1
+            borderColor: c_rim_edit
+            align: center
+            justify: center
+            gap: 6
+            onTap: {
+              haptic("light")
+              pickSec = sec
+              pickIdx = -1
+              query = ""
+            }
+            Box { size: compact ? 50 : 28; radius: 16; border: compact ? 1 : 0; borderColor: c_rim_edit; align: center; Text { text: "+"; fontSize: 22; color: c_text_pri; align: center } }
+            Text { text: "add"; fontSize: 11; bold: true; align: center; color: c_text_sec }
+          }
+        }
+      }
+
+      if isEditing {
+        Row {
+          fill: width
+          justify: spaceBetween
+          Text { text: "tap a tile to change its app"; fontSize: 10; color: c_text_sec }
+          Text {
+            text: "Reset"
+            style: label
+            fontSize: 10
+            color: c_text_sec
+            onTap: {
+              haptic("medium")
+              tiles = remove(tiles, sec)
+            }
+          }
+        }
+      }
+
+      // The app picker, over everything, for this section.
+      Popup {
+        visible: pickSec == sec
+        onDismiss: {
+          pickSec = ""
+          query = ""
+        }
+        width: screenWidth - 48
+        padding: 12
+        background: "#161618"
+        radius: 20
+        border: 1
+        borderColor: c_rim
+        Column {
+          fill: width
+          gap: 8
+          Row {
+            fill: width
+            align: center
+            padding: [10, 8]
+            radius: 12
+            background: c_pill_off
+            Input {
+              weight: 1
+              placeholder: "Search apps"
+              underline: false
+              color: c_text_pri
+              fontSize: 14
+              onChange: query = value
+            }
+          }
+          Column {
+            fill: width
+            height: 340
+            scroll: true
+            gap: 2
+            for a in picks {
+              Row {
+                fill: width
+                align: center
+                gap: 12
+                padding: [8, 10]
+                radius: 12
+                onTap: {
+                  haptic("light")
+                  let next = pickIdx < 0 ? list + [a.key] : set(list, pickIdx, a.key)
+                  tiles = set(tiles, sec, next)
+                  pickSec = ""
+                  query = ""
+                }
+                Box {
+                  size: 28
+                  align: center
+                  if a.hasIcon {
+                    Image { src: a.mask; size: 24; tint: c_text_pri; label: a.label }
+                  } else {
+                    Text { text: a.initials; fontSize: 12; bold: true; color: c_text_pri }
+                  }
+                }
+                Text { text: a.name; fontSize: 14; color: c_text_pri; weight: 1; maxLines: 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   background: c_bg
   padding: [16, 20, 16, 20]
@@ -81,7 +327,7 @@ face "dhawan-media" {
             launcher("drawer")
           }
           Text {
-            text: "⊞ APPS"
+            text: "APPS"
             fontSize: 10
             bold: true
             color: c_text_sec
@@ -168,9 +414,10 @@ face "dhawan-media" {
             justify: center
             gap: 10
             Text {
-              text: isPlaying ? "🎵" : "🎧"
+              text: isPlaying ? "♫" : "♪"
               fontSize: 48
               align: center
+              color: c_text_pri
             }
             Text {
               text: isPlaying ? "PLAYING AUDIO" : "AUDIO READY"
@@ -367,7 +614,7 @@ face "dhawan-media" {
         align: center
         gap: 8
         onTap: settings("output")
-        Text { text: "🎧"; fontSize: 13; align: center }
+        Text { text: "◖◗"; fontSize: 12; color: c_text_pri; align: center }
         Text {
           text: "Audio Output:"
           fontSize: 12
@@ -390,191 +637,13 @@ face "dhawan-media" {
     }
 
     // ==========================================
-    // 2. MEDIA APPS & QUICK LAUNCH GRID
+    // 2. MEDIA APPS: editable (long-press a tile or tap EDIT)
     // ==========================================
-    Column {
-      fill: width
-      background: c_card
-      border: 1
-      borderColor: c_border
-      radius: 20
-      padding: 16
-      gap: 12
-
-      Text {
-        text: "STREAMING & MEDIA APPS"
-        style: label
-        fontSize: 11
-        color: c_text_sec
-      }
-
-      // High-Contrast Monochrome Launch Tiles
-      Row {
-        fill: width
-        gap: 8
-
-        // yt-mini
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("yt-mini")
-          Text {
-            text: "▶"
-            fontSize: 20
-            align: center
-            color: c_text_pri
-          }
-          Text {
-            text: "yt-mini"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-
-        // CineStream
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("cinestream")
-          Text {
-            text: "🎬"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "CineStream"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-
-        // AniStream
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("anistream")
-          Text {
-            text: "⛩"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "AniStream"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-      }
-
-      Row {
-        fill: width
-        gap: 8
-
-        // Netflix
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("com.netflix.mediaclient")
-          Text {
-            text: "🍿"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Netflix"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-
-        // Gallery
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("gallery")
-          Text {
-            text: "🖼"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Gallery"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-
-        // Photos
-        Column {
-          weight: 1
-          padding: [10, 14]
-          radius: 14
-          background: c_pill_off
-          border: 1
-          borderColor: c_border
-          align: center
-          justify: center
-          gap: 6
-          onTap: androidApp("photos")
-          Text {
-            text: "📷"
-            fontSize: 20
-            align: center
-          }
-          Text {
-            text: "Photos"
-            fontSize: 11
-            bold: true
-            align: center
-            color: c_text_pri
-          }
-        }
-      }
+    AppSection {
+      sec: "media"
+      title: "STREAMING & MEDIA APPS"
+      defaults: ["yt-mini", "CineStream", "AniStream", "com.netflix.mediaclient", "Gallery", "Photos"]
+      cols: 3
     }
 
     // ==========================================
@@ -634,7 +703,7 @@ face "dhawan-media" {
           justify: center
           gap: 6
           onTap: settings("sound")
-          Text { text: "🎚"; fontSize: 12; align: center }
+          Text { text: "≑"; fontSize: 13; bold: true; color: c_text_pri; align: center }
           Text {
             text: "Equalizer & Dolby"
             fontSize: 11
@@ -655,7 +724,7 @@ face "dhawan-media" {
           justify: center
           gap: 6
           onTap: settings("volume")
-          Text { text: "🔊"; fontSize: 12; align: center }
+          Text { text: "♪"; fontSize: 12; bold: true; color: c_text_pri; align: center }
           Text {
             text: "Sound Settings"
             fontSize: 11

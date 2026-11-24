@@ -71,6 +71,7 @@
     <string name="settings_launcher_updates">başlatıcı</string>
     <string name="settings_launcher_update_available">Google Play’de yeni bir Omalauncher var</string>
     <string name="settings_launcher_update_failed">Google Play, Omalauncher’ı güncelleyemedi</string>
+    <string name="settings_launcher_download_failed">güncelleme indirilemedi, tekrar dene</string>
     <string name="settings_launcher_update_github">GitHub’da Omalauncher %1$s → %2$s</string>
     <string name="settings_update_all">tümünü güncelle</string>
     <string name="settings_check">kontrol et</string>

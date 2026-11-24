@@ -46,9 +46,12 @@ android {
         applicationId = "dev.omalauncher"
         minSdk = 29
         targetSdk = 37
-        versionCode = 48
-        versionName = "1.12.0"
+        versionCode = 49
+        versionName = "1.13.0"
         ndk { abiFilters += "arm64-v8a" }
+        // The CI run that built it (-PciBuild=N, as the release tag's -build.N), so the update check can tell two
+        // builds of one version apart; 0 for a local build.
+        buildConfigField("int", "CI_BUILD", (providers.gradleProperty("ciBuild").orNull?.toIntOrNull() ?: 0).toString())
     }
 
     buildFeatures { buildConfig = true }

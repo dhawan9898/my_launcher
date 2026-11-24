@@ -12,13 +12,20 @@ class LauncherUpdatesTest {
         tag: String,
         draft: Boolean = false,
         prerelease: Boolean = false,
-    ) = """{"tag_name":"$tag","draft":$draft,"prerelease":$prerelease,"html_url":"https://github.com/x/releases/tag/$tag"}"""
+        apk: String? = null,
+    ): String {
+        val assets = apk?.let { """[{"name":"$it","browser_download_url":"https://github.com/x/releases/download/$tag/$it"}]""" } ?: "[]"
+        return """{"tag_name":"$tag","draft":$draft,"prerelease":$prerelease,"html_url":"https://github.com/x/releases/tag/$tag","assets":$assets}"""
+    }
 
     private fun releases(vararg r: String) = r.joinToString(",", "[", "]")
 
     @Test fun findsTheNewestNewerRelease() {
         val json = releases(release("v1.4.0"), release("v1.6.0"), release("v1.5.0"))
-        assertEquals("1.6.0" to "https://github.com/x/releases/tag/v1.6.0", newerRelease(json, "1.4.0"))
+        val r = newerRelease(json, "1.4.0")!!
+        assertEquals("1.6.0", r.version)
+        assertEquals("https://github.com/x/releases/tag/v1.6.0", r.page)
+        assertNull(r.apk)
     }
 
     @Test fun nothingWhenUpToDateOrAhead() {
@@ -31,6 +38,17 @@ class LauncherUpdatesTest {
     @Test fun skipsDraftsPrereleasesAndOtherTags() {
         val json = releases(release("v2.0.0", draft = true), release("v1.9.0", prerelease = true), release("mesa-zink-26.2.4"), release("v1.4.0"))
         assertNull(newerRelease(json, "1.4.0"))
+    }
+
+    @Test fun ciBuildsOfOneVersionCountByBuild() {
+        val json = releases(release("v1.12.0-build.11", apk = "a.apk"), release("v1.12.0-build.13", apk = "b.apk"), release("v1.12.0-build.12"))
+        val r = newerRelease(json, "1.12.0", build = 11)!!
+        assertEquals(13, r.build)
+        assertEquals("1.12.0 (13)", r.label)
+        assertEquals("https://github.com/x/releases/download/v1.12.0-build.13/b.apk", r.apk)
+        assertNull(newerRelease(json, "1.12.0", build = 13))
+        // A higher version wins over a later build of a lower one.
+        assertEquals("1.13.0", newerRelease(releases(release("v1.12.0-build.20"), release("v1.13.0-build.14")), "1.12.0", 11)!!.version)
     }
 
     @Test fun comparesVersionPartsAsNumbers() {

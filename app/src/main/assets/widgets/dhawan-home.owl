@@ -1,6 +1,6 @@
 face "dhawan-home" {
   meta {
-    owl: 23
+    owl: 26
     description: "Vantablack OLED Main Home Dashboard"
     version: "1.0"
     license: "MIT"
@@ -20,6 +20,8 @@ face "dhawan-home" {
   source wx = http("https://wttr.in/Bengaluru?format=j1") every 30m timeout 10s json
   source notifs = android.notifications
   source net = android.network every 2s
+  // Every app on the phone (Android, Linux and owl apps), for the editable favourites and the app picker.
+  source d = android.drawer
 
   // --- Vantablack High-Contrast Monochrome Design Tokens ---
   let c_bg = "#000000"
@@ -29,6 +31,13 @@ face "dhawan-home" {
   let c_pill_on = "#FFFFFF"
   let c_text_pri = "#FFFFFF"
   let c_text_sec = "#8E8E93"
+
+  // --- Liquid glass: a pane lit from the top left, a bright rim, and a springy press ---
+  let c_glass = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.11), alpha("#FFFFFF", 0.035)])
+  let c_glass_edit = linear(0, 0, 1, 1, [alpha("#FFFFFF", 0.18), alpha("#FFFFFF", 0.06)])
+  let c_rim = alpha("#FFFFFF", 0.16)
+  let c_rim_edit = alpha("#FFFFFF", 0.45)
+  let c_clear = alpha("#000000", 0)
 
   // --- Dynamic Greeting & Time Computations ---
   let hr = num(fmtTime(now, "H"))
@@ -83,6 +92,243 @@ face "dhawan-home" {
   state dragging = ""
   state dragX = 0
   state swiped = ""
+
+  // --- Editable app tiles ---
+  // Each section's tiles, by section id: drawer keys once edited. Until then a section shows its defaults, given by
+  // package name, which match that app's drawer key ("a:<package>/<activity>"), or by the app's name ("Phone").
+  state tiles = {} persist
+  // The section in edit mode, "" for none.
+  state editing = ""
+  // The app picker: the section and the tile it replaces, -1 to add one; "" while it's closed.
+  state pickSec = ""
+  state pickIdx = -1
+  state query = ""
+  // The node under the finger, for the press spring.
+  state pressed = ""
+
+  let allApps = d.apps ?? []
+  let picks = query == "" ? take(allApps, 60) : take(rank(allApps, query), 40)
+
+  // One app tile: the app's own icon as a white silhouette on glass. In edit mode a tap picks another app for it.
+  // compact: a glass squircle with the name under it, for a row of many; else a card with both inside.
+  component AppTile(sec, ref, i, list, compact) {
+    let a = find(allApps, x => x.key == ref || startsWith(x.key, "a:" + ref + "/") || lower(x.name) == lower(ref))
+    let id = sec + ":" + i
+    let isEditing = editing == sec
+    Column {
+      padding: compact ? [0, 2] : [10, 14]
+      radius: 16
+      background: compact ? c_clear : (isEditing ? c_glass_edit : c_glass)
+      border: compact ? 0 : 1
+      borderColor: isEditing ? c_rim_edit : c_rim
+      align: center
+      justify: center
+      gap: 6
+      scale: pressed == id ? 0.92 : 1
+      animate scale: spring(0.55, 600)
+      opacity: a == null ? 0.45 : 1
+      onPress: pressed = id
+      onRelease: pressed = ""
+      onTap: {
+        haptic("light")
+        if isEditing {
+          pickSec = sec
+          pickIdx = i
+          query = ""
+        } else if a != null {
+          open(a.key)
+        }
+      }
+      onLongPress: {
+        haptic("medium")
+        editing = isEditing ? "" : sec
+      }
+      Box {
+        size: compact ? 50 : 28
+        radius: 16
+        background: compact ? (isEditing ? c_glass_edit : c_glass) : c_clear
+        border: compact ? 1 : 0
+        borderColor: isEditing ? c_rim_edit : c_rim
+        align: center
+        if a != null && a.hasIcon {
+          Image { src: a.mask; size: 26; tint: c_text_pri; label: a.label }
+        } else {
+          Text { text: a != null ? a.initials : "?"; fontSize: 14; bold: true; color: c_text_pri; align: center }
+        }
+        if isEditing {
+          // Remove badge, at the icon's corner.
+          Box {
+            size: 20
+            radius: 10
+            offset: compact ? [20, -20] : [16, -14]
+            background: c_pill_on
+            align: center
+            onTap: {
+              haptic("light")
+              tiles = set(tiles, sec, remove(list, i))
+            }
+            Text { text: "×"; fontSize: 13; bold: true; color: "#000000"; align: center }
+          }
+        }
+      }
+      Text {
+        text: a != null ? a.name : "not installed"
+        fontSize: compact ? 10 : 11
+        bold: true
+        align: center
+        maxLines: 1
+        color: c_text_pri
+      }
+    }
+  }
+
+  // A card of app tiles that you can change: long-press a tile or tap "edit", then tap a tile to swap its app,
+  // its × to remove it, or + to add one.
+  component AppSection(sec, title, defaults, cols, compact = false) {
+    let list = get(tiles, sec, defaults)
+    let isEditing = editing == sec
+    let shown = isEditing ? list : filter(list, r => find(allApps, x => x.key == r || startsWith(x.key, "a:" + r + "/") || lower(x.name) == lower(r)) != null)
+    Column {
+      fill: width
+      background: c_card
+      border: 1
+      borderColor: c_border
+      radius: 20
+      padding: 16
+      gap: 12
+
+      Row {
+        fill: width
+        align: center
+        Text { text: title; style: label; fontSize: 11; color: c_text_sec; weight: 1 }
+        Row {
+          padding: [10, 5]
+          radius: 10
+          background: isEditing ? c_pill_on : c_glass
+          border: isEditing ? 0 : 1
+          borderColor: c_rim
+          onTap: {
+            haptic("light")
+            editing = isEditing ? "" : sec
+          }
+          Text { text: isEditing ? "DONE" : "EDIT"; style: label; fontSize: 10; bold: true; color: isEditing ? "#000000" : c_text_sec }
+        }
+      }
+
+      Grid {
+        columns: cols
+        gap: 8
+        fill: width
+        for r, i in shown {
+          AppTile { sec: sec; ref: r; i: isEditing ? i : indexOf(list, r); list: list; compact: compact }
+        }
+        if isEditing {
+          // Add a tile.
+          Column {
+            padding: compact ? [0, 2] : [10, 14]
+            radius: 16
+            border: compact ? 0 : 1
+            borderColor: c_rim_edit
+            align: center
+            justify: center
+            gap: 6
+            onTap: {
+              haptic("light")
+              pickSec = sec
+              pickIdx = -1
+              query = ""
+            }
+            Box { size: compact ? 50 : 28; radius: 16; border: compact ? 1 : 0; borderColor: c_rim_edit; align: center; Text { text: "+"; fontSize: 22; color: c_text_pri; align: center } }
+            Text { text: "add"; fontSize: 11; bold: true; align: center; color: c_text_sec }
+          }
+        }
+      }
+
+      if isEditing {
+        Row {
+          fill: width
+          justify: spaceBetween
+          Text { text: "tap a tile to change its app"; fontSize: 10; color: c_text_sec }
+          Text {
+            text: "Reset"
+            style: label
+            fontSize: 10
+            color: c_text_sec
+            onTap: {
+              haptic("medium")
+              tiles = remove(tiles, sec)
+            }
+          }
+        }
+      }
+
+      // The app picker, over everything, for this section.
+      Popup {
+        visible: pickSec == sec
+        onDismiss: {
+          pickSec = ""
+          query = ""
+        }
+        width: screenWidth - 48
+        padding: 12
+        background: "#161618"
+        radius: 20
+        border: 1
+        borderColor: c_rim
+        Column {
+          fill: width
+          gap: 8
+          Row {
+            fill: width
+            align: center
+            padding: [10, 8]
+            radius: 12
+            background: c_pill_off
+            Input {
+              weight: 1
+              placeholder: "Search apps"
+              underline: false
+              color: c_text_pri
+              fontSize: 14
+              onChange: query = value
+            }
+          }
+          Column {
+            fill: width
+            height: 340
+            scroll: true
+            gap: 2
+            for a in picks {
+              Row {
+                fill: width
+                align: center
+                gap: 12
+                padding: [8, 10]
+                radius: 12
+                onTap: {
+                  haptic("light")
+                  let next = pickIdx < 0 ? list + [a.key] : set(list, pickIdx, a.key)
+                  tiles = set(tiles, sec, next)
+                  pickSec = ""
+                  query = ""
+                }
+                Box {
+                  size: 28
+                  align: center
+                  if a.hasIcon {
+                    Image { src: a.mask; size: 24; tint: c_text_pri; label: a.label }
+                  } else {
+                    Text { text: a.initials; fontSize: 12; bold: true; color: c_text_pri }
+                  }
+                }
+                Text { text: a.name; fontSize: 14; color: c_text_pri; weight: 1; maxLines: 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   background: c_bg
   padding: [16, 20, 16, 20]
@@ -152,7 +398,7 @@ face "dhawan-home" {
             launcher("page:-2")
           }
           Text {
-            text: "🎵"
+            text: "♪"
             fontSize: 14
             align: center
           }
@@ -171,7 +417,7 @@ face "dhawan-home" {
             launcher("page:0")
           }
           Text {
-            text: "💼"
+            text: "▤"
             fontSize: 14
             align: center
           }
@@ -210,7 +456,7 @@ face "dhawan-home" {
             launcher("settings")
           }
           Text {
-            text: "⚙"
+            text: "⚙︎"
             fontSize: 16
             align: center
             color: c_text_pri
@@ -346,7 +592,7 @@ face "dhawan-home" {
             haptic("light")
             androidApp("weather")
           }
-          Text { text: "📍"; fontSize: 11; align: center }
+          Text { text: "⌖"; fontSize: 11; align: center }
           Text {
             text: "${condText} • ${place}"
             fontSize: 11
@@ -434,9 +680,11 @@ face "dhawan-home" {
             borderColor: c_border
             align: center
             Text {
-              text: "🔦"
+              text: "ϟ"
               fontSize: 20
+              bold: true
               align: center
+              color: torchOn ? "#000000" : c_text_pri
             }
           }
           Text {
@@ -462,9 +710,11 @@ face "dhawan-home" {
             borderColor: c_border
             align: center
             Text {
-              text: isMuted ? "🔇" : "🔊"
+              text: isMuted ? "✕" : "♪"
               fontSize: 20
+              bold: true
               align: center
+              color: !isMuted ? "#000000" : c_text_pri
             }
           }
           Text {
@@ -490,7 +740,7 @@ face "dhawan-home" {
             borderColor: c_border
             align: center
             Text {
-              text: "🌙"
+              text: "☾︎"
               fontSize: 20
               align: center
               color: dndOn ? "#000000" : c_text_pri
@@ -519,9 +769,11 @@ face "dhawan-home" {
             borderColor: c_border
             align: center
             Text {
-              text: "📶"
+              text: "≋"
               fontSize: 20
+              bold: true
               align: center
+              color: wifiOn ? "#000000" : c_text_pri
             }
           }
           Text {
@@ -576,9 +828,11 @@ face "dhawan-home" {
             borderColor: c_border
             align: center
             Text {
-              text: "💻"
-              fontSize: 20
+              text: ">_"
+              fontSize: 16
+              bold: true
               align: center
+              color: c_text_pri
             }
           }
           Text {
@@ -615,142 +869,14 @@ face "dhawan-home" {
     }
 
     // ==========================================
-    // 4. FAVORITE APPS (WhatsApp, Instagram, Phone, Messages, Brave, Camera)
+    // 4. FAVORITE APPS: editable (long-press a tile or tap EDIT)
     // ==========================================
-    Column {
-      fill: width
-      background: c_card
-      border: 1
-      borderColor: c_border
-      radius: 20
-      padding: 16
-      gap: 12
-
-      Row {
-        fill: width
-        align: center
-        Text {
-          text: "⚡  FAVORITE APPS"
-          style: label
-          fontSize: 11
-          color: c_text_sec
-          weight: 1
-        }
-        Text {
-          text: "QUICK LAUNCH"
-          style: label
-          fontSize: 10
-          color: c_text_sec
-        }
-      }
-
-      Row {
-        fill: width
-        align: center
-        justify: spaceEvenly
-
-        // WhatsApp
-        Column {
-          align: center
-          gap: 6
-          onTap: { haptic("light"); androidApp("com.whatsapp") }
-          Box {
-            size: 46
-            radius: 14
-            background: c_pill_off
-            border: 1
-            borderColor: c_border
-            align: center
-            Text { text: "💬"; fontSize: 22; align: center }
-          }
-          Text { text: "WhatsApp"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
-        }
-
-        // Instagram
-        Column {
-          align: center
-          gap: 6
-          onTap: { haptic("light"); androidApp("com.instagram.android") }
-          Box {
-            size: 46
-            radius: 14
-            background: c_pill_off
-            border: 1
-            borderColor: c_border
-            align: center
-            Text { text: "📸"; fontSize: 22; align: center }
-          }
-          Text { text: "Instagram"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
-        }
-
-        // Phone
-        Column {
-          align: center
-          gap: 6
-          onTap: { haptic("light"); androidApp("phone") }
-          Box {
-            size: 46
-            radius: 14
-            background: c_pill_off
-            border: 1
-            borderColor: c_border
-            align: center
-            Text { text: "📞"; fontSize: 22; align: center }
-          }
-          Text { text: "Phone"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
-        }
-
-        // Messages
-        Column {
-          align: center
-          gap: 6
-          onTap: { haptic("light"); androidApp("messages") }
-          Box {
-            size: 46
-            radius: 14
-            background: c_pill_off
-            border: 1
-            borderColor: c_border
-            align: center
-            Text { text: "✉"; fontSize: 22; align: center }
-          }
-          Text { text: "Messages"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
-        }
-
-        // Brave Browser
-        Column {
-          align: center
-          gap: 6
-          onTap: { haptic("light"); androidApp("com.brave.browser") }
-          Box {
-            size: 46
-            radius: 14
-            background: c_pill_off
-            border: 1
-            borderColor: c_border
-            align: center
-            Text { text: "🦁"; fontSize: 22; align: center }
-          }
-          Text { text: "Brave"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
-        }
-
-        // Camera
-        Column {
-          align: center
-          gap: 6
-          onTap: { haptic("light"); androidApp("camera") }
-          Box {
-            size: 46
-            radius: 14
-            background: c_pill_off
-            border: 1
-            borderColor: c_border
-            align: center
-            Text { text: "📷"; fontSize: 22; align: center }
-          }
-          Text { text: "Camera"; fontSize: 10; bold: true; maxLines: 1; color: c_text_pri }
-        }
-      }
+    AppSection {
+      sec: "fav"
+      title: "FAVORITE APPS"
+      defaults: ["com.whatsapp", "com.instagram.android", "Phone", "Messages", "com.brave.browser", "Camera"]
+      cols: 4
+      compact: true
     }
 
     // ==========================================
@@ -798,7 +924,7 @@ face "dhawan-home" {
           borderColor: c_border
           align: center
           gap: 6
-          Text { text: bat.charging ? "⚡" : "🔋"; fontSize: 16; align: center }
+          Text { text: bat.charging ? "ϟ" : "▮"; fontSize: 16; align: center }
           Column {
             gap: 1
             Text { text: batText; fontSize: 12; bold: true; color: c_text_pri }
@@ -816,7 +942,7 @@ face "dhawan-home" {
           borderColor: c_border
           align: center
           gap: 6
-          Text { text: "📶"; fontSize: 16; align: center }
+          Text { text: "↓"; fontSize: 16; bold: true; color: c_text_pri; align: center }
           Column {
             gap: 1
             Text { text: "${fmtBytes(netDown)}/s"; fontSize: 12; bold: true; color: c_text_pri }
@@ -834,7 +960,7 @@ face "dhawan-home" {
           borderColor: c_border
           align: center
           gap: 6
-          Text { text: "🧠"; fontSize: 16; align: center }
+          Text { text: "▦"; fontSize: 16; align: center }
           Column {
             gap: 1
             Text { text: memText; fontSize: 12; bold: true; color: c_text_pri }
@@ -858,7 +984,7 @@ face "dhawan-home" {
           borderColor: c_border
           align: center
           gap: 6
-          Text { text: "💾"; fontSize: 12; align: center }
+          Text { text: "◫"; fontSize: 12; align: center }
           Text { text: "Storage: ${fmtBytes(storFree)} free"; fontSize: 10; color: c_text_sec; weight: 1 }
         }
 
@@ -895,7 +1021,7 @@ face "dhawan-home" {
         fill: width
         align: center
         Text {
-          text: "🔔  NOTIFICATIONS"
+          text: "NOTIFICATIONS"
           style: label
           fontSize: 11
           color: c_text_pri
@@ -1017,7 +1143,7 @@ face "dhawan-home" {
           launcher("page:-2")
         }
         Text {
-          text: "🎵"
+          text: "♪"
           fontSize: 14
           align: center
         }
@@ -1075,7 +1201,7 @@ face "dhawan-home" {
           launcher("page:0")
         }
         Text {
-          text: "💼"
+          text: "▤"
           fontSize: 14
           align: center
         }

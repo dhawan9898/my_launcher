@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Settings' updates box installs a launcher update downloaded from GitHub (LauncherUpdates). Not in the play
+         build: Play updates the launcher itself and doesn't allow apps to install others. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+</manifest>

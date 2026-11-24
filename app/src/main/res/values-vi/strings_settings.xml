@@ -81,6 +81,7 @@
     <string name="settings_launcher_updates">launcher</string>
     <string name="settings_launcher_update_available">đã có Omalauncher mới trên Google Play</string>
     <string name="settings_launcher_update_failed">Google Play không cập nhật được Omalauncher</string>
+    <string name="settings_launcher_download_failed">không tải được bản cập nhật, hãy thử lại</string>
     <!-- The running version and the newer one on GitHub releases (GitHub builds). -->
     <string name="settings_launcher_update_github">Omalauncher %1$s → %2$s trên GitHub</string>
     <string name="settings_update_all">cập nhật tất cả</string>

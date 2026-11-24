@@ -11,4 +11,6 @@
     <external-path name="phone" path="." />
     <!-- QR codes of widgets, for sharing as an image. -->
     <cache-path name="share" path="share/" />
+    <!-- A launcher update downloaded from GitHub, for Android's installer (the foss build's LauncherUpdates). -->
+    <cache-path name="update" path="update/" />
 </paths>

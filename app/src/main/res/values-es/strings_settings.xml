@@ -72,6 +72,7 @@
     <string name="settings_launcher_updates">launcher</string>
     <string name="settings_launcher_update_available">hay un Omalauncher nuevo en Google Play</string>
     <string name="settings_launcher_update_failed">Google Play no pudo actualizar Omalauncher</string>
+    <string name="settings_launcher_download_failed">no se pudo descargar la actualización, inténtalo de nuevo</string>
     <string name="settings_launcher_update_github">Omalauncher %1$s → %2$s en GitHub</string>
     <string name="settings_update_all">actualizar todo</string>
     <string name="settings_check">comprobar</string>
