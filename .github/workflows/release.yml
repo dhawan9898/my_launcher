@@ -74,7 +74,7 @@ jobs:
           fi
 
       - name: Test and build release APK
-        run: ./gradlew :owl:test :app:testFossDebugUnitTest :app:assembleFossRelease :app:bundlePlayRelease
+        run: ./gradlew :owl:test :app:testFossDebugUnitTest :app:lintFossDebug :app:assembleFossRelease :app:bundlePlayRelease
 
       - name: Checksum and package outputs
         id: apk

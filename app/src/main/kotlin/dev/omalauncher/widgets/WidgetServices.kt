@@ -1018,16 +1018,38 @@ class WidgetServices(
                 return
             }
         }
+        // By name, the launcher's own profile's copy before a work or clone profile's, and the closest name first:
+        // the whole name, then a name starting with it, then a whole word of it ("photos" in "Google Photos").
+        // A name merely containing it ("gallery" in "Gallery Vault Pro") or a package fragment comes last, so a
+        // tile names the app it means rather than whichever happened to be listed first.
+        val own = apps.apps.sortedBy { it.profile != null }
+        val word = Regex("(^|[^\\p{L}\\p{N}])" + Regex.escape(arg) + "($|[^\\p{L}\\p{N}])", RegexOption.IGNORE_CASE)
         val app = apps.apps.firstOrNull { it.key == arg }
             ?: apps.apps.firstOrNull { it.component.packageName == arg && it.profile == null }
-            ?: apps.apps.firstOrNull { it.label.equals(arg, ignoreCase = true) }
-            ?: apps.apps.firstOrNull { it.label.contains(arg, ignoreCase = true) || it.component.packageName.contains(arg, ignoreCase = true) }
+            ?: own.firstOrNull { it.label.equals(arg, ignoreCase = true) }
+            ?: own.firstOrNull { it.label.startsWith(arg, ignoreCase = true) }
+            ?: own.firstOrNull { word.containsMatchIn(it.label) }
+            ?: own.firstOrNull { it.label.contains(arg, ignoreCase = true) }
+            ?: own.takeIf { arg.length >= 4 }?.firstOrNull { it.component.packageName.contains(arg, ignoreCase = true) }
         if (app != null) {
             runtime.usage.record("a:" + app.key)
             apps.open(app)
             return
         }
-        context.packageManager.getLaunchIntentForPackage(arg)?.let { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)) }
+        val launch = context.packageManager.getLaunchIntentForPackage(arg)
+        if (launch != null) {
+            runCatching { context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)) }
+            return
+        }
+        // A tile for an app that isn't installed (a package name, like "com.netflix.mediaclient") opens its store
+        // page instead of doing nothing, so the tap visibly goes somewhere and the app is one tap from installed.
+        if (Regex("[A-Za-z][\\w]*(\\.[A-Za-z][\\w]*)+").matches(arg)) {
+            val store = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$arg")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            runCatching { context.startActivity(store) }
+                .onFailure { Log.w("widgets", "androidApp($arg): not installed and no store to open") }
+        } else {
+            Log.w("widgets", "androidApp($arg): no app by that name")
+        }
     }
 
     /**

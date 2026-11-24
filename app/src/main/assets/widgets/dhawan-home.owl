@@ -33,19 +33,20 @@ face "dhawan-home" {
   // --- Dynamic Greeting & Time Computations ---
   let hr = num(fmtTime(now, "H"))
   let greet = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : hr < 21 ? "Good evening" : "Good night"
-  let upSec = sys.uptime ?? 3600
+  // Unknown data shows as a dash rather than a made-up reading.
+  let upSec = sys.uptime ?? 0
   let upHours = floor(upSec / 3600)
   let upMins = floor((upSec % 3600) / 60)
-  let uptimeStr = "${upHours}h ${upMins}m"
+  let uptimeStr = sys.uptime != null ? "${upHours}h ${upMins}m" : "—"
 
   // Weather extraction
   let cur = wx.current_condition[0]
   let day = wx.weather[0]
   let place = wx.nearest_area[0].areaName[0].value ?? "Bengaluru"
-  let tempC = cur ? cur.temp_C : "26"
-  let condText = cur ? cur.weatherDesc[0].value : "Sunny"
-  let tempMax = day ? day.maxtempC : "30"
-  let tempMin = day ? day.mintempC : "20"
+  let tempC = cur ? cur.temp_C : "—"
+  let condText = cur ? cur.weatherDesc[0].value : "No weather"
+  let tempMax = day ? day.maxtempC : "—"
+  let tempMin = day ? day.mintempC : "—"
 
   // Calendar week calculations (7 days: Monday to Sunday)
   let dayName = fmtTime(now, "E", null, "en")
@@ -53,16 +54,16 @@ face "dhawan-home" {
   let weekLabels = ["M", "T", "W", "T", "F", "S", "S"]
 
   // Telemetry ratios
-  let batLevel = bat.level ?? 85
+  let batText = bat.level != null ? "${bat.level}%" : "—"
   let memTotal = sys.memory.total ?? 1
   let memUsed = sys.memory.used ?? 0
-  let memRatio = memTotal > 0 ? (memUsed / memTotal) : 0.45
-  let memPct = round(memRatio * 100)
+  let memRatio = memTotal > 0 ? (memUsed / memTotal) : 0
+  let memText = sys.memory.total != null ? "${round(memRatio * 100)}%" : "—"
 
   let storTotal = sys.storage.total ?? 1
   let storFree = sys.storage.free ?? 0
   let storUsed = storTotal - storFree
-  let storRatio = storTotal > 0 ? (storUsed / storTotal) : 0.60
+  let storRatio = storTotal > 0 ? (storUsed / storTotal) : 0
   let storPct = round(storRatio * 100)
 
   // Network speed computations
@@ -800,7 +801,7 @@ face "dhawan-home" {
           Text { text: bat.charging ? "⚡" : "🔋"; fontSize: 16; align: center }
           Column {
             gap: 1
-            Text { text: "${batLevel}%"; fontSize: 12; bold: true; color: c_text_pri }
+            Text { text: batText; fontSize: 12; bold: true; color: c_text_pri }
             Text { text: bat.charging ? "Charging" : "Battery"; fontSize: 9; color: c_text_sec }
           }
         }
@@ -836,7 +837,7 @@ face "dhawan-home" {
           Text { text: "🧠"; fontSize: 16; align: center }
           Column {
             gap: 1
-            Text { text: "${memPct}%"; fontSize: 12; bold: true; color: c_text_pri }
+            Text { text: memText; fontSize: 12; bold: true; color: c_text_pri }
             Text { text: "RAM used"; fontSize: 9; color: c_text_sec }
           }
         }

@@ -31,13 +31,18 @@ face "dhawan-media" {
   let trackArtist = (m != null && m.artist != null && m.artist != "") ? m.artist : "Select audio from a player below"
   let sourceApp = (m != null && m.app != null && m.app != "") ? m.app : "MEDIA HUB"
   let pos = m != null ? (m.position ?? 0) : 0
-  let dur = m != null ? (m.duration ?? 0) : 100
-  let safeDur = dur > 0 ? dur : 100
+  let dur = m != null ? (m.duration ?? 0) : 0
+  // No length (nothing playing, a live stream): no made-up time left, and nothing to drag.
+  let hasDur = dur > 0
+  let safeDur = hasDur ? dur : 1
   let remaining = safeDur > pos ? (safeDur - pos) : 0
+  let canSeek = hasDur && m != null && m.canSeek == true
+  let played = hasDur ? max(0.001, min(0.999, pos / safeDur)) : 0.001
 
   // Audio output device
   let outName = (vol != null && vol.output != null && vol.output.name != null && vol.output.name != "") ? vol.output.name : "Phone Speaker"
-  let volPct = vol != null ? (vol.level ?? 0) : 50
+  let volPct = vol != null ? (vol.level ?? 0) : 0
+  let volText = vol != null && vol.level != null ? "${vol.level}%" : "—"
 
   background: c_bg
   padding: [16, 20, 16, 20]
@@ -222,15 +227,26 @@ face "dhawan-media" {
       Column {
         fill: width
         gap: 2
-        Slider {
-          value: pos
-          min: 0
-          max: safeDur
-          live: true
-          fill: width
-          color: c_text_pri
-          track: "#2C2C2E"
-          onChange: media("seek", value)
+        if canSeek {
+          Slider {
+            value: pos
+            min: 0
+            max: safeDur
+            live: true
+            fill: width
+            color: c_text_pri
+            track: "#2C2C2E"
+            onChange: media("seek", value)
+          }
+        } else {
+          // Progress only, for a player that can't seek: a slider here would snap back when dragged.
+          Row {
+            fill: width
+            height: 28
+            align: center
+            Box { weight: played; height: 4; background: hasDur ? c_text_pri : "#2C2C2E" }
+            Box { weight: 1 - played; height: 4; background: "#2C2C2E" }
+          }
         }
         Row {
           fill: width
@@ -241,7 +257,7 @@ face "dhawan-media" {
             weight: 1
           }
           Text {
-            text: "-${fmtTime(remaining, 'm:ss', 'UTC')}"
+            text: hasDur ? "-${fmtTime(remaining, 'm:ss', 'UTC')}" : "—"
             fontSize: 11
             color: c_text_sec
           }
@@ -584,7 +600,7 @@ face "dhawan-media" {
           weight: 1
         }
         Text {
-          text: "${volPct}%"
+          text: volText
           fontSize: 12
           bold: true
           color: c_text_pri
